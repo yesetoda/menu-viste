@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: menuvista-api
+    runtime: go
+    plan: starter
+    buildCommand: go build -o bin/server cmd/server/main.go
+    startCommand: ./bin/server
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: menuvista-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: menuvista-redis
+          type: keyvalue
+          property: connectionString
+      - key: PORT
+        value: 8080
+      - key: ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: CHAPA_PUBLIC_KEY
+        sync: false
+      - key: CHAPA_SECRET_KEY
+        sync: false
+      - key: CHAPA_API_KEY
+        sync: false
+      - key: CHAPA_API_URL
+        value: https://api.chapa.co/v1
+      - key: CHAPA_MODE
+        value: sandbox
+      - key: RESEND_API_KEY
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+
+  - type: keyvalue
+    name: menuvista-redis
+    plan: starter
+    ipAllowList: [] # Only allow internal connections
+
+databases:
+  - name: menuvista-db
+    plan: starter
