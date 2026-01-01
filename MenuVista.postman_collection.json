@@ -1,0 +1,1398 @@
+{
+  "info": {
+    "_postman_id": "menuvista-api-collection-v7",
+    "name": "MenuVista API - Deeply Refined",
+    "description": "Deeply refined API collection for MenuVista based on source code analysis. Includes all endpoints (Auth, Restaurant, Menu, Staff, Analytics, Activity, Payment, Webhooks, Admin) with correct DTOs and automated scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "General",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                  "    pm.collectionVariables.set(\"user_id\", jsonData.data.user.id);",
+                  "}",
+                  "if (jsonData.data && jsonData.data.checkout_url) {",
+                  "    pm.collectionVariables.set(\"checkout_url\", jsonData.data.checkout_url);",
+                  "}",
+                  "if (jsonData.data && jsonData.data.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"owner@example.com\",\n    \"password\": \"password123\",\n    \"full_name\": \"John Doe\",\n    \"role\": \"owner\",\n    \"plan_slug\": \"pro-monthly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.data.access_token);",
+                  "}",
+                  "if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                  "    pm.collectionVariables.set(\"user_id\", jsonData.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"owner@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "List All Restaurants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/restaurants?page=1&page_size=10&search=Cafe&cuisine_type=Ethiopian&city=Addis Ababa",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "restaurants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "Cafe"
+                },
+                {
+                  "key": "cuisine_type",
+                  "value": "Ethiopian"
+                },
+                {
+                  "key": "city",
+                  "value": "Addis Ababa"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/restaurants/my-awesome-cafe",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "restaurants", "my-awesome-cafe"]
+            }
+          }
+        },
+        {
+          "name": "List Categories by Restaurant Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/restaurants/:slug/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "restaurants", ":slug", "categories"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "my-awesome-cafe"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Items by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/restaurants/:slug/categories/:category_id/items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "restaurants", ":slug", "categories", ":category_id", "items"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "my-awesome-cafe"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner - Restaurants",
+      "item": [
+        {
+          "name": "Create Restaurant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"restaurant_id\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "slug",
+                  "value": "my-awesome-cafe",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "My Awesome Cafe",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Best coffee in town",
+                  "type": "text"
+                },
+                {
+                  "key": "cuisine_type",
+                  "value": "Ethiopian",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "Addis Ababa",
+                  "type": "text"
+                },
+                {
+                  "key": "country",
+                  "value": "Ethiopia",
+                  "type": "text"
+                },
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "cover",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants"]
+            }
+          }
+        },
+        {
+          "name": "List My Restaurants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants?page=1&page_size=10&search=Cafe&status=approved",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "Cafe"
+                },
+                {
+                  "key": "status",
+                  "value": "approved"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Restaurant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "My Updated Cafe",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated description",
+                  "type": "text"
+                },
+                {
+                  "key": "is_published",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Restaurant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner - Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"category_id\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"restaurant_id\": \"{{restaurant_id}}\",\n    \"name\": \"Breakfast\",\n    \"description\": \"Morning delights\",\n    \"display_order\": 1,\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Categories (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories?page=1&page_size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Breakfast\",\n    \"description\": \"Updated morning delights\",\n    \"display_order\": 1,\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories/:category_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories", ":category_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories/:category_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories", ":category_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner - Menu Items",
+      "item": [
+        {
+          "name": "Create Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"item_id\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Pancakes",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Fluffy pancakes with syrup",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "12.50",
+                  "type": "text"
+                },
+                {
+                  "key": "currency",
+                  "value": "ETB",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "is_available",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories/:category_id/items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories", ":category_id", "items"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Items (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories/:category_id/items?page=1&page_size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories", ":category_id", "items"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Updated Pancakes",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Extra fluffy pancakes with maple syrup",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "14.50",
+                  "type": "text"
+                },
+                {
+                  "key": "is_available",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories/:category_id/items/:item_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories", ":category_id", "items", ":item_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                },
+                {
+                  "key": "item_id",
+                  "value": "{{item_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/categories/:category_id/items/:item_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "categories", ":category_id", "items", ":item_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                },
+                {
+                  "key": "item_id",
+                  "value": "{{item_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner - Staff",
+      "item": [
+        {
+          "name": "Add Staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"staff_id\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"restaurant_id\": \"{{restaurant_id}}\",\n    \"email\": \"staff@example.com\",\n    \"password\": \"staffpass123\",\n    \"full_name\": \"Staff Member\",\n    \"phone\": \"+251911223344\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/staff",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "staff"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/staff",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "staff"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/staff/:staff_id?restaurant_id={{restaurant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "staff", ":staff_id"],
+              "query": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "staff_id",
+                  "value": "{{staff_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner - Analytics & Activity",
+      "item": [
+        {
+          "name": "Get Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/analytics/overview?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "analytics", "overview"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-31"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/my-restaurants/:restaurant_id/activity?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "my-restaurants", ":restaurant_id", "activity"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner - Payments",
+      "item": [
+        {
+          "name": "Initiate Payment (Registration)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.checkout_url) {",
+                  "    pm.collectionVariables.set(\"checkout_url\", jsonData.data.checkout_url);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"plan\": \"pro-monthly\",\n    \"type\": \"registration\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/initiate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "initiate"]
+            }
+          }
+        },
+        {
+          "name": "Renew Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"plan\": \"pro-monthly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/renew",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "renew"]
+            }
+          }
+        },
+        {
+          "name": "Upgrade Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"plan\": \"enterprise-monthly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/upgrade",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "upgrade"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard",
+      "item": [
+        {
+          "name": "Get Admin Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Admin Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/logs?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "logs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List All Restaurants (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/restaurants?status=pending&search=Cafe&page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "restaurants"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "search",
+                  "value": "Cafe"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant Details (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/restaurants/:restaurant_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "restaurants", ":restaurant_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - User Management",
+      "item": [
+        {
+          "name": "List All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users?status=active&role=owner&page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                },
+                {
+                  "key": "role",
+                  "value": "owner"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/:user_id/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users", ":user_id", "status"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "{{user_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Restaurant Management",
+      "item": [
+        {
+          "name": "Update Restaurant Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"approved\",\n    \"reason\": \"Restaurant meets all requirements\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/restaurants/:restaurant_id/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "restaurants", ":restaurant_id", "status"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks (Testing)",
+      "item": [
+        {
+          "name": "Chapa Webhook (Actual)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Automatically generate HMAC-SHA256 signature for Chapa Webhook",
+                  "const secret = pm.collectionVariables.get(\"chapa_webhook_secret\");",
+                  "if (secret) {",
+                  "    const body = pm.request.body.raw;",
+                  "    const hash = CryptoJS.HmacSHA256(body, secret).toString();",
+                  "    pm.collectionVariables.set(\"chapa_signature\", hash);",
+                  "    console.log(\"Generated Chapa-Signature: \", hash);",
+                  "} else {",
+                  "    console.warn(\"CHAPA_WEBHOOK_SECRET not set in collection variables\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Chapa-Signature",
+                "value": "{{chapa_signature}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"event\": \"payment.success\",\n    \"data\": {\n        \"status\": \"completed\",\n        \"first_name\": \"John\",\n        \"last_name\": \"Doe\",\n        \"email\": \"owner@example.com\",\n        \"amount\": \"19.99\",\n        \"currency\": \"ETB\",\n        \"tx_ref\": \"{{tx_ref}}\",\n        \"reference\": \"ref_123456789\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/chapa/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "chapa", "webhook"]
+            }
+          }
+        },
+        {
+          "name": "Chapa Webhook Test (Success)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/chapa/test?type=success&tx_ref={{tx_ref}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "chapa", "test"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "success"
+                },
+                {
+                  "key": "tx_ref",
+                  "value": "{{tx_ref}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chapa Webhook Test (Failed)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/chapa/test?type=failed&tx_ref={{tx_ref}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "chapa", "test"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "failed"
+                },
+                {
+                  "key": "tx_ref",
+                  "value": "{{tx_ref}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "restaurant_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "item_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staff_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tx_ref",
+      "value": "tx_test_123",
+      "type": "string"
+    },
+    {
+      "key": "chapa_signature",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chapa_webhook_secret",
+      "value": "secret",
+      "type": "string"
+    },
+    {
+      "key": "checkout_url",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
