@@ -1039,14 +1039,23 @@ func (q *Queries) GetRestaurantDetailsForAdmin(ctx context.Context, id uuid.UUID
 	return i, err
 }
 
-const getSubscriptionByOwner = `-- name: GetSubscriptionByOwner :one
+const getActiveSubscriptionByOwner = `-- name: GetActiveSubscriptionByOwner :one
 SELECT s.id, s.owner_id, s.plan_id, s.status, s.current_period_start, s.current_period_end, s.trial_end, s.cancelled_at, s.payment_provider_subscription_id, s.created_at, s.updated_at, sp.name as plan_name, sp.slug as plan_slug, sp.features
 FROM subscriptions s
 JOIN subscription_plans sp ON s.plan_id = sp.id
-WHERE s.owner_id = $1 LIMIT 1
+WHERE s.owner_id = $1 AND s.status = 'active' LIMIT 1
 `
 
-type GetSubscriptionByOwnerRow struct {
+const getLatestSubscriptionByOwner = `-- name: GetLatestSubscriptionByOwner :one
+SELECT s.id, s.owner_id, s.plan_id, s.status, s.current_period_start, s.current_period_end, s.trial_end, s.cancelled_at, s.payment_provider_subscription_id, s.created_at, s.updated_at, sp.name as plan_name, sp.slug as plan_slug, sp.features
+FROM subscriptions s
+JOIN subscription_plans sp ON s.plan_id = sp.id
+WHERE s.owner_id = $1 
+ORDER BY s.created_at DESC
+LIMIT 1
+`
+
+type GetActiveSubscriptionByOwnerRow struct {
 	ID                            uuid.UUID          `db:"id" json:"id"`
 	OwnerID                       uuid.UUID          `db:"owner_id" json:"owner_id"`
 	PlanID                        uuid.UUID          `db:"plan_id" json:"plan_id"`
@@ -1063,9 +1072,48 @@ type GetSubscriptionByOwnerRow struct {
 	Features                      []byte             `db:"features" json:"features"`
 }
 
-func (q *Queries) GetSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetSubscriptionByOwnerRow, error) {
-	row := q.db.QueryRow(ctx, getSubscriptionByOwner, ownerID)
-	var i GetSubscriptionByOwnerRow
+func (q *Queries) GetActiveSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetActiveSubscriptionByOwnerRow, error) {
+	row := q.db.QueryRow(ctx, getActiveSubscriptionByOwner, ownerID)
+	var i GetActiveSubscriptionByOwnerRow
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.PlanID,
+		&i.Status,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelledAt,
+		&i.PaymentProviderSubscriptionID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PlanName,
+		&i.PlanSlug,
+		&i.Features,
+	)
+	return i, err
+}
+
+type GetLatestSubscriptionByOwnerRow struct {
+	ID                            uuid.UUID          `db:"id" json:"id"`
+	OwnerID                       uuid.UUID          `db:"owner_id" json:"owner_id"`
+	PlanID                        uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status                        SubscriptionStatus `db:"status" json:"status"`
+	CurrentPeriodStart            pgtype.Timestamp   `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd              pgtype.Timestamp   `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                      pgtype.Timestamp   `db:"trial_end" json:"trial_end"`
+	CancelledAt                   pgtype.Timestamp   `db:"cancelled_at" json:"cancelled_at"`
+	PaymentProviderSubscriptionID pgtype.Text        `db:"payment_provider_subscription_id" json:"payment_provider_subscription_id"`
+	CreatedAt                     pgtype.Timestamp   `db:"created_at" json:"created_at"`
+	UpdatedAt                     pgtype.Timestamp   `db:"updated_at" json:"updated_at"`
+	PlanName                      string             `db:"plan_name" json:"plan_name"`
+	PlanSlug                      string             `db:"plan_slug" json:"plan_slug"`
+	Features                      []byte             `db:"features" json:"features"`
+}
+
+func (q *Queries) GetLatestSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetLatestSubscriptionByOwnerRow, error) {
+	row := q.db.QueryRow(ctx, getLatestSubscriptionByOwner, ownerID)
+	var i GetLatestSubscriptionByOwnerRow
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
@@ -1731,14 +1779,14 @@ LIMIT $1 OFFSET $2
 `
 
 type ListRestaurantsWithFiltersParams struct {
-	Limit       int32                `db:"limit" json:"limit"`
-	Offset      int32                `db:"offset" json:"offset"`
-	OwnerID     *uuid.UUID           `db:"owner_id" json:"owner_id"`
-	CuisineType pgtype.Text          `db:"cuisine_type" json:"cuisine_type"`
-	City        pgtype.Text          `db:"city" json:"city"`
-	Country     pgtype.Text          `db:"country" json:"country"`
-	IsPublished pgtype.Bool          `db:"is_published" json:"is_published"`
-	Search      pgtype.Text          `db:"search" json:"search"`
+	Limit       int32       `db:"limit" json:"limit"`
+	Offset      int32       `db:"offset" json:"offset"`
+	OwnerID     *uuid.UUID  `db:"owner_id" json:"owner_id"`
+	CuisineType pgtype.Text `db:"cuisine_type" json:"cuisine_type"`
+	City        pgtype.Text `db:"city" json:"city"`
+	Country     pgtype.Text `db:"country" json:"country"`
+	IsPublished pgtype.Bool `db:"is_published" json:"is_published"`
+	Search      pgtype.Text `db:"search" json:"search"`
 }
 
 func (q *Queries) ListRestaurantsWithFilters(ctx context.Context, arg ListRestaurantsWithFiltersParams) ([]Restaurant, error) {
@@ -2569,4 +2617,20 @@ func (q *Queries) UpsertAnalyticsAggregate(ctx context.Context, arg UpsertAnalyt
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateOldSubscriptionsStatus = `-- name: UpdateOldSubscriptionsStatus :exec
+UPDATE subscriptions
+SET status = 'updated', updated_at = NOW()
+WHERE owner_id = $1 AND id != $2 AND status != 'updated'
+`
+
+type UpdateOldSubscriptionsStatusParams struct {
+	OwnerID uuid.UUID `db:"owner_id" json:"owner_id"`
+	ID      uuid.UUID `db:"id" json:"id"`
+}
+
+func (q *Queries) UpdateOldSubscriptionsStatus(ctx context.Context, arg UpdateOldSubscriptionsStatusParams) error {
+	_, err := q.db.Exec(ctx, updateOldSubscriptionsStatus, arg.OwnerID, arg.ID)
+	return err
 }

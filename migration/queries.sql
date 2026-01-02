@@ -287,11 +287,24 @@ INSERT INTO subscriptions (
     $1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
--- name: GetSubscriptionByOwner :one
+-- name: GetActiveSubscriptionByOwner :one
 SELECT s.*, sp.name as plan_name, sp.slug as plan_slug, sp.features
 FROM subscriptions s
 JOIN subscription_plans sp ON s.plan_id = sp.id
-WHERE s.owner_id = $1 LIMIT 1;
+WHERE s.owner_id = $1 AND s.status = 'active' LIMIT 1;
+
+-- name: GetLatestSubscriptionByOwner :one
+SELECT s.*, sp.name as plan_name, sp.slug as plan_slug, sp.features
+FROM subscriptions s
+JOIN subscription_plans sp ON s.plan_id = sp.id
+WHERE s.owner_id = $1 
+ORDER BY s.created_at DESC
+LIMIT 1;
+
+-- name: UpdateOldSubscriptionsStatus :exec
+UPDATE subscriptions
+SET status = 'updated', updated_at = NOW()
+WHERE owner_id = $1 AND id != $2 AND status != 'updated';
 
 -- name: UpdateSubscription :one
 UPDATE subscriptions

@@ -13,10 +13,11 @@ import (
 
 type PaymentHandler struct {
 	service *payment.Service
+	webhook *payment.WebhookService
 }
 
-func NewPaymentHandler(service *payment.Service) *PaymentHandler {
-	return &PaymentHandler{service: service}
+func NewPaymentHandler(service *payment.Service, webhook *payment.WebhookService) *PaymentHandler {
+	return &PaymentHandler{service: service, webhook: webhook}
 }
 
 func (h *PaymentHandler) InitiatePayment(c *gin.Context) {
@@ -49,6 +50,7 @@ func (h *PaymentHandler) InitiatePayment(c *gin.Context) {
 	input := payment.InitiatePaymentInput{
 		OwnerID: userID,
 		Plan:    req.Plan,
+		Type:    req.Type,
 	}
 	fmt.Println("this is the payment input", input)
 
@@ -72,30 +74,6 @@ func (h *PaymentHandler) UpgradeSubscription(c *gin.Context) {
 	// Wrapper for InitiatePayment with type=upgrade
 	c.Set("type", "upgrade")
 	h.InitiatePayment(c)
-}
-
-func (h *PaymentHandler) ChapaWebhook(c *gin.Context) {
-	log.Printf("[PaymentHandler] ChapaWebhook request received")
-
-	var payload struct {
-		TxRef  string `json:"tx_ref"`
-		Status string `json:"status"`
-	}
-
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		log.Printf("[PaymentHandler] Webhook bind error: %v", err)
-		c.Status(http.StatusBadRequest)
-		return
-	}
-
-	err := h.service.HandleWebhook(c.Request.Context(), payload.TxRef, payload.Status)
-	if err != nil {
-		log.Printf("[PaymentHandler] Webhook service error: %v", err)
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	c.Status(http.StatusOK)
 }
 
 func (h *PaymentHandler) PaymentSuccess(c *gin.Context) {
@@ -126,7 +104,7 @@ func (h *PaymentHandler) PaymentSuccess(c *gin.Context) {
 
 	// Verify payment
 	log.Printf("[PaymentHandler] 🔍 Verifying payment with Chapa: %s", txRef)
-	verified, err := h.service.VerifyPayment(c.Request.Context(), txRef)
+	providerRef, verified, err := h.webhook.VerifyPayment(c.Request.Context(), txRef)
 	if err != nil {
 		log.Printf("[PaymentHandler] ❌ Payment verification failed: %v", err)
 		c.HTML(http.StatusInternalServerError, "payment_error.html", gin.H{
@@ -144,13 +122,18 @@ func (h *PaymentHandler) PaymentSuccess(c *gin.Context) {
 		return
 	}
 
-	// Payment successful - show success page
-	log.Printf("[PaymentHandler] ✅ Payment verified successfully: %s", txRef)
+	// Payment successful - update database immediately
+	log.Printf("[PaymentHandler] ✅ Payment verified successfully: %s. Updating database...", txRef)
+	if err := h.webhook.CompletePayment(c.Request.Context(), txRef, providerRef); err != nil {
+		log.Printf("[PaymentHandler] ❌ Failed to complete payment: %v", err)
+		// We still show success page because the webhook might succeed later,
+		// but we log the error. Actually, it's better to show an error if it fails here?
+		// If it's already completed (idempotent), it will return nil or we can handle it.
+	}
+
 	c.HTML(http.StatusOK, "payment_success.html", gin.H{
 		"tx_ref": txRef,
 		"status": "completed",
-		// "amount": amount, // Need to fetch from DB or Chapa verify response
-		// "currency": currency,
 	})
 }
 

@@ -45,7 +45,7 @@ func (s *Service) GetPlanBySlug(ctx context.Context, slug string) (*models.Subsc
 
 func (s *Service) GetSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (*models.Subscription, error) {
 	ownerIDStr := ownerID.String()
-	row, err := s.queries.GetSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
+	row, err := s.queries.GetActiveSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
 	if err != nil {
 		return nil, fmt.Errorf("subscription not found: %w", err)
 	}
@@ -111,7 +111,7 @@ func (s *Service) mapToDomainPlan(row persistence.SubscriptionPlan) *models.Subs
 	}
 }
 
-func (s *Service) mapToDomainSubscription(row persistence.GetSubscriptionByOwnerRow) *models.Subscription {
+func (s *Service) mapToDomainSubscription(row persistence.GetActiveSubscriptionByOwnerRow) *models.Subscription {
 	id := row.ID
 	ownerID := row.OwnerID
 	planID := row.PlanID

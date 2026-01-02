@@ -16,6 +16,8 @@ import (
 	"menuvista/internal/storage/persistence"
 	"menuvista/internal/utils"
 
+	"net/http"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -94,27 +96,40 @@ func (s *WebhookService) verifySignature(body []byte, signature string) bool {
 
 func (s *WebhookService) handlePaymentSuccess(ctx context.Context, data models.ChapaWebhookData) error {
 	log.Printf("[WebhookService] Processing payment success for tx: %s", data.TxRef)
+	return s.CompletePayment(ctx, data.TxRef, data.Reference)
+}
 
-	// Update transaction status
-	_, err := s.queries.UpdatePaymentTransactionStatus(ctx, persistence.UpdatePaymentTransactionStatusParams{
-		TxRef:                  data.TxRef,
+func (s *WebhookService) CompletePayment(ctx context.Context, txRef string, providerRef string) error {
+	log.Printf("[WebhookService] Completing payment for tx: %s, providerRef: %s", txRef, providerRef)
+
+	// 0. Idempotency check
+	tx, err := s.queries.GetPaymentTransactionByTxRef(ctx, txRef)
+	if err == nil && tx.Status == "completed" {
+		log.Printf("[WebhookService] Payment already completed for tx: %s", txRef)
+		return nil
+	}
+
+	// 1. Update transaction status
+	_, err = s.queries.UpdatePaymentTransactionStatus(ctx, persistence.UpdatePaymentTransactionStatusParams{
+		TxRef:                  txRef,
 		Status:                 "completed",
-		ProviderTransactionRef: pgtype.Text{String: data.Reference, Valid: true},
+		ProviderTransactionRef: pgtype.Text{String: providerRef, Valid: true},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update transaction status: %w", err)
 	}
 
-	// Update invoice status
+	// 2. Update invoice status
 	invoice, err := s.queries.UpdateInvoiceStatus(ctx, persistence.UpdateInvoiceStatusParams{
-		InvoiceNumber: data.TxRef,
+		InvoiceNumber: txRef,
 		Status:        persistence.InvoiceStatusPaid,
 	})
 	if err != nil {
 		log.Printf("[WebhookService] Warning: Failed to update invoice status: %v", err)
+		return fmt.Errorf("failed to update invoice status: %w", err)
 	}
 
-	// Activate Subscription
+	// 3. Activate Subscription
 	now := time.Now()
 	expiresAt := now.AddDate(0, 1, 0)
 
@@ -128,15 +143,32 @@ func (s *WebhookService) handlePaymentSuccess(ctx context.Context, data models.C
 		return fmt.Errorf("failed to activate subscription: %w", err)
 	}
 
-	// Send confirmation email
-	go func() {
-		// Get user details
-		user, err := s.queries.GetUserByID(context.Background(), invoice.OwnerID)
-		if err != nil {
-			log.Printf("[WebhookService] Failed to get user for email: %v", err)
-			return
-		}
+	// 4. Mark old subscriptions as updated
+	err = s.queries.UpdateOldSubscriptionsStatus(ctx, persistence.UpdateOldSubscriptionsStatusParams{
+		OwnerID: invoice.OwnerID,
+		ID:      invoice.SubscriptionID,
+	})
+	if err != nil {
+		log.Printf("[WebhookService] Warning: Failed to update old subscriptions status: %v", err)
+	}
 
+	// 5. Ensure user is active
+	_, err = s.queries.UpdateUser(ctx, persistence.UpdateUserParams{
+		ID:       invoice.OwnerID,
+		IsActive: pgtype.Bool{Bool: true, Valid: true},
+	})
+	if err != nil {
+		log.Printf("[WebhookService] Warning: Failed to activate user: %v", err)
+	}
+
+	user, err := s.queries.GetUserByID(ctx, invoice.OwnerID)
+	if err != nil {
+		log.Printf("[WebhookService] Failed to get user for email: %v", err)
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// 6. Send confirmation email
+	go func() {
 		amount, _ := utils.NumericToFloat(invoice.Amount)
 		if err := s.emailService.SendPaymentSuccessEmail(
 			context.Background(),
@@ -150,8 +182,44 @@ func (s *WebhookService) handlePaymentSuccess(ctx context.Context, data models.C
 		}
 	}()
 
-	log.Printf("[WebhookService] Successfully processed payment success for tx: %s", data.TxRef)
+	log.Printf("[WebhookService] Successfully completed payment for tx: %s", txRef)
 	return nil
+}
+
+func (s *WebhookService) VerifyPayment(ctx context.Context, txRef string) (string, bool, error) {
+	verifyURL := "https://api.chapa.co/v1/transaction/verify/" + txRef
+
+	req, _ := http.NewRequest("GET", verifyURL, nil)
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("CHAPA_SECRET_KEY"))
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", false, err
+	}
+	defer resp.Body.Close()
+
+	var verifyResp map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&verifyResp); err != nil {
+		return "", false, err
+	}
+
+	if status, ok := verifyResp["status"].(string); !ok || status != "success" {
+		return "", false, nil
+	}
+
+	data, ok := verifyResp["data"].(map[string]interface{})
+	if !ok {
+		return "", false, nil
+	}
+
+	providerRef, _ := data["reference"].(string)
+
+	if data["status"] == "success" {
+		return providerRef, true, nil
+	}
+
+	return providerRef, false, nil
 }
 
 func (s *WebhookService) handlePaymentFailed(ctx context.Context, data models.ChapaWebhookData) error {

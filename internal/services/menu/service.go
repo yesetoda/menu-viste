@@ -55,7 +55,7 @@ func (s *Service) CreateCategory(ctx context.Context, userID uuid.UUID, restaura
 		ownerID = *user.OwnerID
 	}
 	ownerIDStr := ownerID.String()
-	sub, err := s.queries.GetSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
+	sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch subscription: %w", err)
 	}
@@ -199,7 +199,7 @@ func (s *Service) CreateMenuItem(ctx context.Context, userID uuid.UUID, restaura
 		ownerID = *user.OwnerID
 	}
 	ownerIDStr := ownerID.String()
-	sub, err := s.queries.GetSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
+	sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch subscription: %w", err)
 	}

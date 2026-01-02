@@ -1,0 +1,991 @@
+{
+	"info": {
+		"_postman_id": "f9ce161b-e861-4832-8fac-c95e44cc5104",
+		"name": "MenuVista API",
+		"description": "# MenuVista API Documentation\n\nWelcome to the MenuVista API documentation. This collection provides a comprehensive set of endpoints for managing restaurants, menus, staff, and subscriptions.\n\n## Authentication\n\nMost endpoints require authentication using a Bearer Token. \n1. Register a new user or Login.\n2. Copy the `access_token` from the response.\n3. The collection automatically sets the `token` environment variable after a successful login.\n\n## Base URL\n\nThe base URL for all API endpoints is `{{base_url}}`, which defaults to `http://localhost:8080/api/v1`.\n\n## Error Handling\n\nErrors are returned in the following format:\n```json\n{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"Error message description\",\n  \"code\": \"ERROR_CODE\"\n}\n```",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37276877"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"yeneinehseiba@gmail.com\",\n    \"password\": \"password123\",\n    \"full_name\": \"John Doe\",\n    \"role\": \"owner\",\n    \"phone\": \"+1234567890\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user account. \n\n**Roles:** `owner`, `admin`, `staff` (staff usually created by owner)."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.access_token) {",
+									"    pm.collectionVariables.set(\"access_token\", jsonData.data.access_token);",
+									"}",
+									"if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+									"    pm.collectionVariables.set(\"user_id\", jsonData.data.user.id);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"yeneinehseiba@gmail.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticate a user and retrieve access and refresh tokens."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Retrieve the currently authenticated user's profile."
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Account",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/activate?token={{activation_token}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"activate"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{activation_token}}",
+									"description": "The activation token sent via email"
+								}
+							]
+						},
+						"description": "Activate a user account using the token received in the verification email."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for user authentication and account management.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Restaurants (Owner)",
+			"item": [
+				{
+					"name": "Create Restaurant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"The Gourmet Kitchen\",\n    \"slug\": \"the-gourmet-kitchen\",\n    \"description\": \"Fine dining experience\",\n    \"cuisine_type\": \"French\",\n    \"phone\": \"+1987654321\",\n    \"email\": \"contact@gourmet.com\",\n    \"address\": \"123 Culinary Ave\",\n    \"city\": \"Paris\",\n    \"country\": \"France\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants"
+							]
+						},
+						"description": "Create a new restaurant profile."
+					},
+					"response": []
+				},
+				{
+					"name": "List My Restaurants",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data && jsonData.data.length > 0) {",
+									"    pm.environment.set(\"restaurant_id\", jsonData.data[0].id);",
+									"    console.log(\"Restaurant ID updated: \" + jsonData.data[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/my-restaurants",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants"
+							]
+						},
+						"description": "List all restaurants owned by the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Restaurant",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "description",
+									"value": "Updated description for fine dining",
+									"type": "text"
+								},
+								{
+									"key": "is_published",
+									"value": " true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/{{restaurant_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								"{{restaurant_id}}"
+							]
+						},
+						"description": "Update details of a specific restaurant."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Restaurant",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								}
+							]
+						},
+						"description": "Delete a restaurant profile."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for restaurant owners to manage their restaurants.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{access_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Menu Management",
+			"item": [
+				{
+					"name": "Create Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set(\"category_id\", jsonData.data.id);",
+									"    console.log(\"Category ID updated: \" + jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Starters\",\n    \"description\": \"Delicious appetizers\",\n    \"display_order\": 1,\n    \"is_active\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"categories"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								}
+							]
+						},
+						"description": "Create a new menu category for a restaurant."
+					},
+					"response": []
+				},
+				{
+					"name": "List Categories",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"categories"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								}
+							]
+						},
+						"description": "List all categories for a restaurant."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Appetizers\",\n    \"description\": \"Start your meal right\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"categories",
+								":category_id"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								},
+								{
+									"key": "category_id",
+									"value": "{{category_id}}"
+								}
+							]
+						},
+						"description": "Update a menu category."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}",
+									"type": "text"
+								},
+								{
+									"key": "category_id",
+									"value": "{{category_id}}",
+									"type": "text"
+								},
+								{
+									"key": "name",
+									"value": "Bruschetta",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Grilled bread rubbed with garlic and topped with olive oil and salt.",
+									"type": "text"
+								},
+								{
+									"key": "price",
+									"value": "8.50",
+									"type": "text"
+								},
+								{
+									"key": "currency",
+									"value": "USD",
+									"type": "text"
+								},
+								{
+									"key": "is_available",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id/items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"categories",
+								":category_id",
+								"items"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								},
+								{
+									"key": "category_id",
+									"value": "{{category_id}}"
+								}
+							]
+						},
+						"description": "Create a new menu item. Supports multipart/form-data for image upload."
+					},
+					"response": []
+				},
+				{
+					"name": "List Items",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id/items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"categories",
+								":category_id",
+								"items"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								},
+								{
+									"key": "category_id",
+									"value": "{{category_id}}"
+								}
+							]
+						},
+						"description": "List all items in a category."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing menu categories and items.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{access_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Staff Management",
+			"item": [
+				{
+					"name": "Add Staff",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"staff@example.com\",\n    \"full_name\": \"Alice Staff\",\n    \"restaurant_id\": \"{{restaurant_id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/staff",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"staff"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								}
+							]
+						},
+						"description": "Add a new staff member to a restaurant. An email with credentials will be sent to them."
+					},
+					"response": []
+				},
+				{
+					"name": "List Staff",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/:restaurant_id/staff",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								":restaurant_id",
+								"staff"
+							],
+							"variable": [
+								{
+									"key": "restaurant_id",
+									"value": "{{restaurant_id}}"
+								}
+							]
+						},
+						"description": "List all staff members for a restaurant."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing restaurant staff.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Subscription & Payment",
+			"item": [
+				{
+					"name": "Get My Subscription",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subscription/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subscription",
+								"me"
+							]
+						},
+						"description": "Get details of the current user's subscription, including plan limits and usage."
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"plan\":\"bronze-monthly\",\n  \"type\":\"upgrade\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/my-restaurants/payment/initiate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-restaurants",
+								"payment",
+								"initiate"
+							]
+						},
+						"description": "Initiate a payment for subscription upgrade or renewal."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for subscription management and payments.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{access_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Public API",
+			"item": [
+				{
+					"name": "List Restaurants",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/restaurants",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"restaurants"
+							]
+						},
+						"description": "List all published restaurants."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Restaurant by Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/restaurants/:slug",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"restaurants",
+								":slug"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "the-gourmet-kitchen"
+								}
+							]
+						},
+						"description": "Get public details of a restaurant by its slug."
+					},
+					"response": []
+				},
+				{
+					"name": "List Categories (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/restaurants/:slug/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"restaurants",
+								":slug",
+								"categories"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "the-gourmet-kitchen"
+								}
+							]
+						},
+						"description": "List categories for a specific restaurant (public view)."
+					},
+					"response": []
+				}
+			],
+			"description": "Public endpoints for viewing restaurants and menus."
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "restaurant_id",
+			"value": ""
+		},
+		{
+			"key": "category_id",
+			"value": ""
+		},
+		{
+			"key": "activation_token",
+			"value": ""
+		},
+		{
+			"key": "access_token",
+			"value": ""
+		},
+		{
+			"key": "user_id",
+			"value": ""
+		},
+		{
+			"key": "dev",
+			"value": ""
+		}
+	]
+}

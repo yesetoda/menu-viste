@@ -108,6 +108,7 @@ const (
 	SubscriptionStatusPastDue    SubscriptionStatus = "past_due"
 	SubscriptionStatusTrialing   SubscriptionStatus = "trialing"
 	SubscriptionStatusIncomplete SubscriptionStatus = "incomplete"
+	SubscriptionStatusUpdated    SubscriptionStatus = "updated"
 )
 
 func (e *SubscriptionStatus) Scan(src interface{}) error {

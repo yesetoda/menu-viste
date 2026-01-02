@@ -259,7 +259,7 @@ func (s *Service) generateAuthResponse(ctx context.Context, user persistence.Use
 	var subEnd *time.Time
 
 	if user.Role == persistence.UserRoleOwner {
-		sub, err := s.queries.GetSubscriptionByOwner(ctx, user.ID)
+		sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, user.ID)
 		if err == nil {
 			subStatus = string(sub.Status)
 			if sub.CurrentPeriodEnd.Valid {
@@ -346,7 +346,7 @@ func (s *Service) Login(ctx context.Context, input models.LoginRequest) (*models
 
 	// Check subscription status
 	if userRow.Role == persistence.UserRoleOwner {
-		sub, err := s.queries.GetSubscriptionByOwner(ctx, userID)
+		sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, userID)
 		if err == nil {
 			// Check if subscription is active or trialing
 			isActive := sub.Status == persistence.SubscriptionStatusActive || sub.Status == persistence.SubscriptionStatusTrialing
@@ -388,7 +388,7 @@ func (s *Service) Login(ctx context.Context, input models.LoginRequest) (*models
 	} else if userRow.Role == persistence.UserRoleStaff {
 		// Check owner's subscription
 		if ownerID != nil {
-			sub, err := s.queries.GetSubscriptionByOwner(ctx, *ownerID)
+			sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, *ownerID)
 			if err == nil {
 				isActive := sub.Status == persistence.SubscriptionStatusActive || sub.Status == persistence.SubscriptionStatusTrialing
 				if !isActive {

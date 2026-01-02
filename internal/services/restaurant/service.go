@@ -38,7 +38,7 @@ func (s *Service) CreateRestaurant(ctx context.Context, ownerID uuid.UUID, input
 
 	// Tier validation
 	ownerIDStr := ownerID.String()
-	sub, err := s.queries.GetSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
+	sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, ownerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch subscription: %w", err)
 	}

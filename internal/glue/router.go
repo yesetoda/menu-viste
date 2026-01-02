@@ -62,7 +62,7 @@ func InitRouter(
 	restH := rest.NewRestaurantHandler(services.Restaurant)
 	menuH := rest.NewMenuHandler(services.Menu)
 	adminH := rest.NewAdminHandler(services.Admin, services.Restaurant)
-	paymentH := rest.NewPaymentHandler(services.Payment)
+	paymentH := rest.NewPaymentHandler(services.Payment, services.Webhook)
 	webhookH := rest.NewWebhookHandler(services.Webhook)
 	staffH := rest.NewStaffHandler(services.Staff)
 	// UserH := rest.NewUserHandler(services.Staff)

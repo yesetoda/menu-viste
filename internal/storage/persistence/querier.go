@@ -39,7 +39,9 @@ type Querier interface {
 	GetRestaurantByID(ctx context.Context, id uuid.UUID) (Restaurant, error)
 	GetRestaurantBySlug(ctx context.Context, slug string) (Restaurant, error)
 	GetRestaurantDetailsForAdmin(ctx context.Context, id uuid.UUID) (GetRestaurantDetailsForAdminRow, error)
-	GetSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetSubscriptionByOwnerRow, error)
+	GetActiveSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetActiveSubscriptionByOwnerRow, error)
+	GetLatestSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetLatestSubscriptionByOwnerRow, error)
+	UpdateOldSubscriptionsStatus(ctx context.Context, arg UpdateOldSubscriptionsStatusParams) error
 	GetSubscriptionPlanBySlug(ctx context.Context, slug string) (SubscriptionPlan, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)

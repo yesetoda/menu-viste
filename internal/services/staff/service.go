@@ -35,7 +35,7 @@ func (s *Service) CreateStaff(ctx context.Context, ownerID uuid.UUID, restaurant
 	log.Printf("[StaffService] Creating staff: %s for restaurant: %v", input.Email, restaurantID)
 
 	// Tier validation
-	sub, err := s.queries.GetSubscriptionByOwner(ctx, ownerID)
+	sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, ownerID) // Changed from GetSubscriptionByOwner to GetActiveSubscriptionByOwner and ownerID to *ownerID (corrected to ownerID for syntactic correctness)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch subscription: %w", err)
 	}

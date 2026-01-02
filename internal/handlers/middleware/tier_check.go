@@ -72,7 +72,7 @@ func (tm *TierCheckMiddleware) CheckMenuLimit() gin.HandlerFunc {
 
 func (tm *TierCheckMiddleware) getOwnerFeatures(ctx context.Context, ownerID uuid.UUID) (models.FeatureLimits, error) {
 	ownerIDStr := ownerID.String()
-	subRow, err := tm.queries.GetSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
+	subRow, err := tm.queries.GetActiveSubscriptionByOwner(ctx, utils.ToUUID(&ownerIDStr))
 	if err != nil {
 		tm.logger.Printf("[TierCheck] Failed to get subscription: %v", err)
 		return models.FeatureLimits{}, fmt.Errorf("failed to check subscription")
