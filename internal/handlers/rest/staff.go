@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"menuvista/internal/models"
@@ -23,6 +24,7 @@ func NewStaffHandler(service *staff.Service) *StaffHandler {
 
 func (h *StaffHandler) ListStaff(c *gin.Context) {
 	ownerID, exists := c.Get("owner_id")
+	fmt.Println("context", ownerID, exists)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return

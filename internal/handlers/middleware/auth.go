@@ -104,7 +104,9 @@ func (am *AuthMiddleware) setContext(c *gin.Context, claims *AuthClaims) {
 	c.Set("user_id", userID)
 	c.Set("email", "")
 	c.Set("role", claims.Role)
-
+	if claims.Role == "owner" {
+		c.Set("owner_id", userID)
+	}
 	if claims.OwnerID != "" {
 		ownerID := utils.ParseUUID(claims.OwnerID)
 		c.Set("owner_id", ownerID)

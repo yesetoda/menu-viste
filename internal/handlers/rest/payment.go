@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -49,6 +50,7 @@ func (h *PaymentHandler) InitiatePayment(c *gin.Context) {
 		OwnerID: userID,
 		Plan:    req.Plan,
 	}
+	fmt.Println("this is the payment input", input)
 
 	resp, err := h.service.InitiatePayment(c.Request.Context(), input)
 	if err != nil {
