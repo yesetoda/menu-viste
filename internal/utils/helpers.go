@@ -125,3 +125,11 @@ func GeneratePassword(length int) (string, error) {
 
 	return string(password), nil
 }
+
+func TierValueCompare(tierVal, curVal int) bool {
+
+	if tierVal > curVal {
+		return true
+	}
+	return tierVal == -1
+}

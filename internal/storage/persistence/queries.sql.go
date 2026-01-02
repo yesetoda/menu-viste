@@ -7,6 +7,7 @@ package persistence
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -909,7 +910,7 @@ func (q *Queries) GetRecentAdminLogs(ctx context.Context, limit int32) ([]GetRec
 }
 
 const getRestaurantByID = `-- name: GetRestaurantByID :one
-SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, status, view_count, rank_score, created_at, updated_at FROM restaurants
+SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published,  view_count, rank_score, created_at, updated_at FROM restaurants
 WHERE id = $1  LIMIT 1
 `
 
@@ -942,11 +943,12 @@ func (q *Queries) GetRestaurantByID(ctx context.Context, id uuid.UUID) (Restaura
 }
 
 const getRestaurantBySlug = `-- name: GetRestaurantBySlug :one
-SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, status, view_count, rank_score, created_at, updated_at FROM restaurants
+SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, view_count, rank_score, created_at, updated_at FROM restaurants
 WHERE slug = $1  LIMIT 1
 `
 
 func (q *Queries) GetRestaurantBySlug(ctx context.Context, slug string) (Restaurant, error) {
+	fmt.Println("slug", slug)
 	row := q.db.QueryRow(ctx, getRestaurantBySlug, slug)
 	var i Restaurant
 	err := row.Scan(
@@ -1772,8 +1774,7 @@ WHERE
     ($5::text IS NULL OR cuisine_type = $5) AND
     ($6::text IS NULL OR city = $6) AND
     ($7::text IS NULL OR country = $7) AND
-    ($8::boolean IS NULL OR is_published = $8) AND
-    ($9::text IS NULL OR name ILIKE '%' || $9 || '%') 
+    ($8::text IS NULL OR name ILIKE '%' || $8 || '%') 
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -1790,15 +1791,25 @@ type ListRestaurantsWithFiltersParams struct {
 }
 
 func (q *Queries) ListRestaurantsWithFilters(ctx context.Context, arg ListRestaurantsWithFiltersParams) ([]Restaurant, error) {
+	var ownerId any
+	var isPublished bool
+	if arg.OwnerID != nil && *arg.OwnerID != uuid.Nil {
+		ownerId = *arg.OwnerID
+		isPublished = arg.IsPublished.Bool
+	} else {
+		ownerId = nil
+		isPublished = true
+	}
+	fmt.Println("ownerId", ownerId)
+	fmt.Println("isPublished", isPublished)
 	rows, err := q.db.Query(ctx, listRestaurantsWithFilters,
 		arg.Limit,
 		arg.Offset,
-		arg.OwnerID,
-		arg.IsPublished,
+		ownerId,
+		isPublished,
 		arg.CuisineType,
 		arg.City,
 		arg.Country,
-		arg.IsPublished,
 		arg.Search,
 	)
 	if err != nil {
@@ -2339,27 +2350,26 @@ SET
     is_published = COALESCE($13, is_published),
     updated_at = NOW()
 WHERE id = $15 AND (owner_id = $16 OR $17::boolean)
-RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, status, view_count, rank_score, created_at, updated_at
+RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, view_count, rank_score, created_at, updated_at
 `
 
 type UpdateRestaurantParams struct {
-	Name          pgtype.Text          `db:"name" json:"name"`
-	Description   pgtype.Text          `db:"description" json:"description"`
-	CuisineType   pgtype.Text          `db:"cuisine_type" json:"cuisine_type"`
-	Phone         pgtype.Text          `db:"phone" json:"phone"`
-	Email         pgtype.Text          `db:"email" json:"email"`
-	Website       pgtype.Text          `db:"website" json:"website"`
-	Address       pgtype.Text          `db:"address" json:"address"`
-	City          pgtype.Text          `db:"city" json:"city"`
-	Country       pgtype.Text          `db:"country" json:"country"`
-	LogoUrl       pgtype.Text          `db:"logo_url" json:"logo_url"`
-	CoverImageUrl pgtype.Text          `db:"cover_image_url" json:"cover_image_url"`
-	ThemeSettings []byte               `db:"theme_settings" json:"theme_settings"`
-	IsPublished   pgtype.Bool          `db:"is_published" json:"is_published"`
-	Status        NullRestaurantStatus `db:"status" json:"status"`
-	ID            uuid.UUID            `db:"id" json:"id"`
-	OwnerID       uuid.UUID            `db:"owner_id" json:"owner_id"`
-	IsAdmin       bool                 `db:"is_admin" json:"is_admin"`
+	Name          pgtype.Text `db:"name" json:"name"`
+	Description   pgtype.Text `db:"description" json:"description"`
+	CuisineType   pgtype.Text `db:"cuisine_type" json:"cuisine_type"`
+	Phone         pgtype.Text `db:"phone" json:"phone"`
+	Email         pgtype.Text `db:"email" json:"email"`
+	Website       pgtype.Text `db:"website" json:"website"`
+	Address       pgtype.Text `db:"address" json:"address"`
+	City          pgtype.Text `db:"city" json:"city"`
+	Country       pgtype.Text `db:"country" json:"country"`
+	LogoUrl       pgtype.Text `db:"logo_url" json:"logo_url"`
+	CoverImageUrl pgtype.Text `db:"cover_image_url" json:"cover_image_url"`
+	ThemeSettings []byte      `db:"theme_settings" json:"theme_settings"`
+	IsPublished   pgtype.Bool `db:"is_published" json:"is_published"`
+	ID            uuid.UUID   `db:"id" json:"id"`
+	OwnerID       uuid.UUID   `db:"owner_id" json:"owner_id"`
+	IsAdmin       bool        `db:"is_admin" json:"is_admin"`
 }
 
 func (q *Queries) UpdateRestaurant(ctx context.Context, arg UpdateRestaurantParams) (Restaurant, error) {
@@ -2377,12 +2387,12 @@ func (q *Queries) UpdateRestaurant(ctx context.Context, arg UpdateRestaurantPara
 		arg.CoverImageUrl,
 		arg.ThemeSettings,
 		arg.IsPublished,
-		arg.Status,
 		arg.ID,
 		arg.OwnerID,
 		arg.IsAdmin,
 	)
 	var i Restaurant
+	fmt.Println("scan error")
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
@@ -2408,45 +2418,45 @@ func (q *Queries) UpdateRestaurant(ctx context.Context, arg UpdateRestaurantPara
 	return i, err
 }
 
-const updateRestaurantStatus = `-- name: UpdateRestaurantStatus :one
-UPDATE restaurants
-SET status = $2, updated_at = NOW()
-WHERE id = $1
-RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, status, view_count, rank_score, created_at, updated_at
-`
+// const updateRestaurantStatus = `-- name: UpdateRestaurantStatus :one
+// UPDATE restaurants
+// SET status = $2, updated_at = NOW()
+// WHERE id = $1
+// RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, status, view_count, rank_score, created_at, updated_at
+// `
 
-type UpdateRestaurantStatusParams struct {
-	ID     uuid.UUID        `db:"id" json:"id"`
-	Status RestaurantStatus `db:"status" json:"status"`
-}
+// type UpdateRestaurantStatusParams struct {
+// 	ID     uuid.UUID        `db:"id" json:"id"`
+// 	Status RestaurantStatus `db:"status" json:"status"`
+// }
 
-func (q *Queries) UpdateRestaurantStatus(ctx context.Context, arg UpdateRestaurantStatusParams) (Restaurant, error) {
-	row := q.db.QueryRow(ctx, updateRestaurantStatus, arg.ID, arg.Status)
-	var i Restaurant
-	err := row.Scan(
-		&i.ID,
-		&i.OwnerID,
-		&i.Name,
-		&i.Slug,
-		&i.Description,
-		&i.CuisineType,
-		&i.Phone,
-		&i.Email,
-		&i.Website,
-		&i.Address,
-		&i.City,
-		&i.Country,
-		&i.LogoUrl,
-		&i.CoverImageUrl,
-		&i.ThemeSettings,
-		&i.IsPublished,
-		&i.ViewCount,
-		&i.RankScore,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
+// func (q *Queries) UpdateRestaurantStatus(ctx context.Context, arg UpdateRestaurantStatusParams) (Restaurant, error) {
+// 	row := q.db.QueryRow(ctx, updateRestaurantStatus, arg.ID, arg.Status)
+// 	var i Restaurant
+// 	err := row.Scan(
+// 		&i.ID,
+// 		&i.OwnerID,
+// 		&i.Name,
+// 		&i.Slug,
+// 		&i.Description,
+// 		&i.CuisineType,
+// 		&i.Phone,
+// 		&i.Email,
+// 		&i.Website,
+// 		&i.Address,
+// 		&i.City,
+// 		&i.Country,
+// 		&i.LogoUrl,
+// 		&i.CoverImageUrl,
+// 		&i.ThemeSettings,
+// 		&i.IsPublished,
+// 		&i.ViewCount,
+// 		&i.RankScore,
+// 		&i.CreatedAt,
+// 		&i.UpdatedAt,
+// 	)
+// 	return i, err
+// }
 
 const updateStaffStatus = `-- name: UpdateStaffStatus :exec
 UPDATE users

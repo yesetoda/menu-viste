@@ -185,7 +185,7 @@ func InitRouter(
 			admin.GET("/users", adminH.ListUsers)
 			admin.PATCH("/users/:user_id/status", adminH.UpdateUserStatus)
 
-			admin.PATCH("/restaurants/:restaurant_id/status", restH.UpdateRestaurantStatus)
+			// admin.PATCH("/restaurants/:restaurant_id/status", restH.UpdateRestaurantStatus)
 		}
 	}
 

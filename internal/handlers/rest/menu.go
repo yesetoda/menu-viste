@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,8 +40,10 @@ func (h *MenuHandler) CreateCategory(c *gin.Context) {
 		RespondError(c, http.StatusBadRequest, "Restaurant ID is required", "INVALID_INPUT")
 		return
 	}
+	fmt.Println("Restaurant ID:", restaurantIDStr)
 	restaurantID := utils.ParseUUID(restaurantIDStr)
 
+	fmt.Println("Restaurant ID:", restaurantIDStr, restaurantID)
 	var req models.CreateCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Printf("[MenuHandler] CreateCategory bind error: %v", err)

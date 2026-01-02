@@ -160,6 +160,12 @@ func (h *RestaurantHandler) UpdateRestaurant(c *gin.Context) {
 
 	name := c.PostForm("name")
 	description := c.PostForm("description")
+	email := c.PostForm("email")
+	phone := c.PostForm("phone")
+	website := c.PostForm("website")
+	address := c.PostForm("address")
+	city := c.PostForm("city")
+	country := c.PostForm("country")
 
 	restaurantID := utils.ToUUID(&restaurantIDStr)
 
@@ -177,6 +183,12 @@ func (h *RestaurantHandler) UpdateRestaurant(c *gin.Context) {
 	input := models.UpdateRestaurantRequest{
 		Name:        &name,
 		Description: &description,
+		Email:       &email,
+		Phone:       &phone,
+		Website:     &website,
+		Address:     &address,
+		City:        &city,
+		Country:     &country,
 		// TODO: Map other fields
 	}
 
@@ -225,38 +237,38 @@ func (h *RestaurantHandler) DeleteRestaurant(c *gin.Context) {
 	RespondSuccess(c, http.StatusOK, gin.H{"message": "Restaurant deleted"}, nil)
 }
 
-func (h *RestaurantHandler) UpdateRestaurantStatus(c *gin.Context) {
-	log.Printf("[RestaurantHandler] UpdateRestaurantStatus request received")
-	restaurantIDStr := c.Param("restaurant_id")
-	var req struct {
-		Status string `json:"status"`
-		Reason string `json:"reason"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("[RestaurantHandler] UpdateRestaurantStatus bind error: %v", err)
-		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
-		return
-	}
+// func (h *RestaurantHandler) UpdateRestaurantStatus(c *gin.Context) {
+// 	log.Printf("[RestaurantHandler] UpdateRestaurantStatus request received")
+// 	restaurantIDStr := c.Param("restaurant_id")
+// 	var req struct {
+// 		Status string `json:"status"`
+// 		Reason string `json:"reason"`
+// 	}
+// 	if err := c.ShouldBindJSON(&req); err != nil {
+// 		log.Printf("[RestaurantHandler] UpdateRestaurantStatus bind error: %v", err)
+// 		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
+// 		return
+// 	}
 
-	restaurantID := utils.ToUUID(&restaurantIDStr)
+// 	restaurantID := utils.ToUUID(&restaurantIDStr)
 
-	status := persistence.RestaurantStatus(req.Status)
-	if status != persistence.RestaurantStatusApproved && status != persistence.RestaurantStatusRejected && status != persistence.RestaurantStatusSuspended {
-		log.Printf("[RestaurantHandler] UpdateRestaurantStatus invalid status: %s", req.Status)
-		RespondError(c, http.StatusBadRequest, "Invalid status", "INVALID_STATUS")
-		return
-	}
+// 	status := persistence.RestaurantStatus(req.Status)
+// 	if status != persistence.RestaurantStatusApproved && status != persistence.RestaurantStatusRejected && status != persistence.RestaurantStatusSuspended {
+// 		log.Printf("[RestaurantHandler] UpdateRestaurantStatus invalid status: %s", req.Status)
+// 		RespondError(c, http.StatusBadRequest, "Invalid status", "INVALID_STATUS")
+// 		return
+// 	}
 
-	restaurant, err := h.service.UpdateRestaurantStatus(c.Request.Context(), restaurantID, status, req.Reason)
-	if err != nil {
-		log.Printf("[RestaurantHandler] UpdateRestaurantStatus service error: %v", err)
-		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
-		return
-	}
+// 	restaurant, err := h.service.UpdateRestaurantStatus(c.Request.Context(), restaurantID, status, req.Reason)
+// 	if err != nil {
+// 		log.Printf("[RestaurantHandler] UpdateRestaurantStatus service error: %v", err)
+// 		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
+// 		return
+// 	}
 
-	log.Printf("[RestaurantHandler] Restaurant status updated: %v to %s", restaurant.ID, status)
-	RespondSuccess(c, http.StatusOK, restaurant, nil)
-}
+// 	log.Printf("[RestaurantHandler] Restaurant status updated: %v to %s", restaurant.ID, status)
+// 	RespondSuccess(c, http.StatusOK, restaurant, nil)
+// }
 
 func (h *RestaurantHandler) ListPendingRestaurants(c *gin.Context) {
 	log.Printf("[RestaurantHandler] ListPendingRestaurants request received")

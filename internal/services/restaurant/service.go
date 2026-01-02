@@ -73,34 +73,34 @@ func (s *Service) CreateRestaurant(ctx context.Context, ownerID uuid.UUID, input
 	return s.mapToDomainRestaurant(restaurantRow), nil
 }
 
-func (s *Service) UpdateRestaurantStatus(ctx context.Context, id uuid.UUID, status persistence.RestaurantStatus, reason string) (*models.Restaurant, error) {
-	idStr := id.String()
-	restaurantRow, err := s.queries.UpdateRestaurantStatus(ctx, persistence.UpdateRestaurantStatusParams{
-		ID:     utils.ToUUID(&idStr),
-		Status: status,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to update restaurant status: %w", err)
-	}
+// func (s *Service) UpdateRestaurantStatus(ctx context.Context, id uuid.UUID, status persistence.RestaurantStatus, reason string) (*models.Restaurant, error) {
+// 	idStr := id.String()
+// 	restaurantRow, err := s.queries.UpdateRestaurantStatus(ctx, persistence.UpdateRestaurantStatusParams{
+// 		ID:     utils.ToUUID(&idStr),
+// 		Status: status,
+// 	})
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to update restaurant status: %w", err)
+// 	}
 
-	// Fetch owner to send email
-	owner, err := s.queries.GetUserByID(ctx, restaurantRow.OwnerID)
-	if err != nil {
-		log.Printf("[RestaurantService] Warning: Failed to fetch owner for email notification: %v", err)
-	} else {
-		if status == persistence.RestaurantStatusApproved {
-			if err := s.emailService.SendRestaurantApprovalEmail(ctx, &restaurantRow, &owner); err != nil {
-				log.Printf("[RestaurantService] Warning: Failed to send approval email: %v", err)
-			}
-		} else if status == persistence.RestaurantStatusRejected {
-			if err := s.emailService.SendRestaurantRejectionEmail(ctx, &restaurantRow, &owner, reason); err != nil {
-				log.Printf("[RestaurantService] Warning: Failed to send rejection email: %v", err)
-			}
-		}
-	}
+// 	// Fetch owner to send email
+// 	owner, err := s.queries.GetUserByID(ctx, restaurantRow.OwnerID)
+// 	if err != nil {
+// 		log.Printf("[RestaurantService] Warning: Failed to fetch owner for email notification: %v", err)
+// 	} else {
+// 		if status == persistence.RestaurantStatusApproved {
+// 			if err := s.emailService.SendRestaurantApprovalEmail(ctx, &restaurantRow, &owner); err != nil {
+// 				log.Printf("[RestaurantService] Warning: Failed to send approval email: %v", err)
+// 			}
+// 		} else if status == persistence.RestaurantStatusRejected {
+// 			if err := s.emailService.SendRestaurantRejectionEmail(ctx, &restaurantRow, &owner, reason); err != nil {
+// 				log.Printf("[RestaurantService] Warning: Failed to send rejection email: %v", err)
+// 			}
+// 		}
+// 	}
 
-	return s.mapToDomainRestaurant(restaurantRow), nil
-}
+// 	return s.mapToDomainRestaurant(restaurantRow), nil
+// }
 
 func (s *Service) GetRestaurantBySlug(ctx context.Context, slug string) (*models.Restaurant, error) {
 	restaurantRow, err := s.queries.GetRestaurantBySlug(ctx, slug)
@@ -192,6 +192,10 @@ func (s *Service) ListRestaurantsWithFilters(ctx context.Context, filters models
 	if filters.Search != nil {
 		search = pgtype.Text{String: *filters.Search, Valid: true}
 	}
+	fmt.Println("search", search)
+	fmt.Println("ownerID", ownerID)
+	fmt.Println("filters", filters)
+	fmt.Println("pagination", pagination)
 
 	rows, err := s.queries.ListRestaurantsWithFilters(ctx, persistence.ListRestaurantsWithFiltersParams{
 		OwnerID: &ownerID,

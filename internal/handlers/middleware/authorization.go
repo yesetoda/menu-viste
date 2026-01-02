@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -84,6 +85,8 @@ func (am *AuthorizationMiddleware) RequireRestaurantAccess() gin.HandlerFunc {
 				return
 			}
 
+			fmt.Println("Owner ID:", restaurant.OwnerID)
+			fmt.Println("User ID:", userID)
 			if restaurant.OwnerID != userID {
 				c.JSON(http.StatusForbidden, gin.H{"error": "You do not own this restaurant"})
 				c.Abort()

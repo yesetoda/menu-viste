@@ -84,7 +84,7 @@ func (s *Service) CreateCategory(ctx context.Context, userID uuid.UUID, restaura
 
 	restaurantIDStr := restaurantID.String()
 	existingCategories, err := s.queries.ListCategoriesByRestaurant(ctx, utils.ToUUID(&restaurantIDStr))
-	if err == nil && len(existingCategories) >= features.MaxCategories {
+	if err == nil && !utils.TierValueCompare(features.MaxCategories, len(existingCategories)) {
 		return nil, fmt.Errorf("category limit reached for your tier (%d)", features.MaxCategories)
 	}
 
@@ -189,6 +189,7 @@ func (s *Service) CreateMenuItem(ctx context.Context, userID uuid.UUID, restaura
 	log.Printf("[MenuService] Creating item: %s for restaurant: %v by user: %v", input.Name, restaurantID, userID)
 
 	// Verify access
+	fmt.Println("this is the restaurant id in the service:", restaurantID)
 	if err := s.verifyAccess(ctx, user, restaurantID); err != nil {
 		return nil, err
 	}
@@ -377,6 +378,9 @@ func (s *Service) verifyAccess(ctx context.Context, user *models.User, restauran
 	}
 
 	if user.Role == models.RoleOwner {
+		fmt.Println("Restaurant ID:", restaurantID, restaurant.ID)
+		fmt.Println("Owner ID:", restaurant.OwnerID)
+		fmt.Println("User ID:", user.ID)
 		if restaurant.OwnerID != user.ID {
 			return fmt.Errorf("unauthorized: you do not own this restaurant")
 		}

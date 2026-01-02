@@ -69,7 +69,7 @@ type Querier interface {
 	UpdatePaymentRetryJob(ctx context.Context, arg UpdatePaymentRetryJobParams) (PaymentRetryJob, error)
 	UpdatePaymentTransactionStatus(ctx context.Context, arg UpdatePaymentTransactionStatusParams) (PaymentTransaction, error)
 	UpdateRestaurant(ctx context.Context, arg UpdateRestaurantParams) (Restaurant, error)
-	UpdateRestaurantStatus(ctx context.Context, arg UpdateRestaurantStatusParams) (Restaurant, error)
+	// UpdateRestaurantStatus(ctx context.Context, arg UpdateRestaurantStatusParams) (Restaurant, error)
 	UpdateStaffStatus(ctx context.Context, arg UpdateStaffStatusParams) error
 	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
