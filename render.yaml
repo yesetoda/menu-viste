@@ -3,8 +3,8 @@ services:
     name: menuvista-api
     runtime: go
     plan: starter
-    buildCommand: go build -o bin/server cmd/server/main.go
-    startCommand: ./bin/server
+    buildCommand: go build -o app cmd/server/main.go
+    startCommand: ./app
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL

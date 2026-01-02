@@ -1,6 +1,7 @@
 package glue
 
 import (
+	"html/template"
 	"log"
 	"menuvista/internal/handlers/middleware"
 	"menuvista/internal/handlers/rest"
@@ -14,6 +15,7 @@ import (
 	"menuvista/internal/services/staff"
 	"menuvista/internal/services/subscription"
 	"menuvista/internal/services/user"
+	"menuvista/templates"
 
 	"github.com/gin-gonic/gin"
 )
@@ -70,7 +72,8 @@ func InitRouter(
 	subH := rest.NewSubscriptionHandler(services.Subscription)
 
 	// Load HTML templates
-	r.LoadHTMLGlob("templates/*")
+	templ := template.Must(template.ParseFS(templates.FS, "*.html"))
+	r.SetHTMLTemplate(templ)
 
 	// Public Routes
 	api := r.Group("/api/v1")
