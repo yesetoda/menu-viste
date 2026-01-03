@@ -114,18 +114,25 @@ func (s *Service) GetCategoryByID(ctx context.Context, id uuid.UUID) (*models.Ca
 	return s.mapToDomainCategory(row), nil
 }
 
-func (s *Service) ListCategories(ctx context.Context, restaurantID uuid.UUID) ([]*models.Category, error) {
-	restaurantIDStr := restaurantID.String()
-	rows, err := s.queries.ListCategoriesByRestaurant(ctx, utils.ToUUID(&restaurantIDStr))
+func (s *Service) ListCategories(ctx context.Context, restaurantID uuid.UUID, pagination models.PaginationParams) ([]*models.Category, *models.Meta, error) {
+	rows, err := s.queries.ListCategoriesByRestaurant(ctx, restaurantID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list categories: %w", err)
+		return nil, nil, fmt.Errorf("failed to list categories: %w", err)
+	}
+
+	totalRecords, err := s.queries.CountCategoriesByRestaurant(ctx, restaurantID)
+	if err != nil {
+		log.Printf("[MenuService] Warning: Failed to count categories: %v", err)
 	}
 
 	categories := make([]*models.Category, len(rows))
 	for i, row := range rows {
 		categories[i] = s.mapToDomainCategory(row)
 	}
-	return categories, nil
+
+	meta := models.CalculateMeta(pagination.Page, pagination.PageSize, int(totalRecords))
+
+	return categories, meta, nil
 }
 
 func (s *Service) UpdateCategory(ctx context.Context, userID uuid.UUID, id uuid.UUID, input models.UpdateCategoryRequest) (*models.Category, error) {
@@ -254,7 +261,6 @@ func (s *Service) CreateMenuItem(ctx context.Context, userID uuid.UUID, restaura
 	if err != nil {
 		return nil, fmt.Errorf("failed to create menu item: %w", err)
 	}
-
 	return s.mapToDomainMenuItem(itemRow), nil
 }
 
@@ -267,18 +273,25 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id uuid.UUID) (*models.Me
 	return s.mapToDomainMenuItem(row), nil
 }
 
-func (s *Service) ListMenuItems(ctx context.Context, restaurantID uuid.UUID) ([]*models.MenuItem, error) {
-	restaurantIDStr := restaurantID.String()
-	rows, err := s.queries.ListMenuItemsByRestaurant(ctx, utils.ToUUID(&restaurantIDStr))
+func (s *Service) ListMenuItems(ctx context.Context, restaurantID uuid.UUID) ([]*models.MenuItem, *models.Meta, error) {
+	rows, err := s.queries.ListMenuItemsByRestaurant(ctx, restaurantID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list menu items: %w", err)
+		return nil, nil, fmt.Errorf("failed to list menu items: %w", err)
+	}
+
+	totalRecords, err := s.queries.CountMenuItemsByRestaurant(ctx, restaurantID)
+	if err != nil {
+		log.Printf("[MenuService] Warning: Failed to count menu items: %v", err)
 	}
 
 	items := make([]*models.MenuItem, len(rows))
 	for i, row := range rows {
 		items[i] = s.mapToDomainMenuItem(row)
 	}
-	return items, nil
+
+	meta := models.CalculateMeta(1, len(rows), int(totalRecords))
+
+	return items, meta, nil
 }
 
 func (s *Service) UpdateMenuItem(ctx context.Context, userID uuid.UUID, id uuid.UUID, input models.UpdateMenuItemRequest) (*models.MenuItem, error) {
@@ -297,12 +310,9 @@ func (s *Service) UpdateMenuItem(ctx context.Context, userID uuid.UUID, id uuid.
 		return nil, err
 	}
 
-	categoryID := utils.DerefUUID(input.CategoryID)
-	categoryIDStr := categoryID.String()
-	catID := utils.ToUUID(&categoryIDStr)
+
 	params := persistence.UpdateMenuItemParams{
 		ID:           utils.ToUUID(&idStr),
-		CategoryID:   &catID,
 		Name:         pgtype.Text{String: utils.DerefString(input.Name), Valid: input.Name != nil},
 		Description:  pgtype.Text{String: utils.DerefString(input.Description), Valid: input.Description != nil},
 		Price:        utils.ToNumeric(utils.DerefFloat64(input.Price)),
@@ -342,6 +352,27 @@ func (s *Service) DeleteMenuItem(ctx context.Context, userID uuid.UUID, id uuid.
 	return s.queries.DeleteMenuItem(ctx, utils.ToUUID(&idStr))
 }
 
+func (s *Service) ListItems(ctx context.Context, restaurantID uuid.UUID, categoryID uuid.UUID, pagination models.PaginationParams) ([]*models.MenuItem, *models.Meta, error) {
+	rows, err := s.queries.ListMenuItemsByCategory(ctx, categoryID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list menu items: %w", err)
+	}
+
+	totalRecords, err := s.queries.CountMenuItemsByCategory(ctx, categoryID)
+	if err != nil {
+		log.Printf("[MenuService] Warning: Failed to count menu items: %v", err)
+	}
+
+	items := make([]*models.MenuItem, len(rows))
+	for i, row := range rows {
+		items[i] = s.mapToDomainMenuItem(row)
+	}
+
+	meta := models.CalculateMeta(pagination.Page, pagination.PageSize, int(totalRecords))
+
+	return items, meta, nil
+}
+
 // Helpers
 
 func (s *Service) getUser(ctx context.Context, userID uuid.UUID) (*models.User, error) {
@@ -351,18 +382,16 @@ func (s *Service) getUser(ctx context.Context, userID uuid.UUID) (*models.User, 
 		return nil, fmt.Errorf("failed to fetch user: %w", err)
 	}
 
-	role := models.UserRole(userRow.Role)
-
-	ownerID := userRow.OwnerID
-	restaurantID := userRow.RestaurantID
+	// ownerID := userRow.OwnerID // Removed as per instruction
+	// restaurantID := userRow.RestaurantID // Removed as per instruction
 
 	return &models.User{
-		ID:           userID,
+		ID:           userRow.ID,
 		Email:        userRow.Email,
 		FullName:     userRow.FullName,
-		Role:         role,
-		OwnerID:      ownerID,
-		RestaurantID: restaurantID,
+		Role:         models.UserRole(userRow.Role),
+		OwnerID:      &userRow.OwnerID,
+		RestaurantID: &userRow.RestaurantID,
 	}, nil
 }
 
@@ -387,6 +416,29 @@ func (s *Service) verifyAccess(ctx context.Context, user *models.User, restauran
 	} else if user.Role == models.RoleStaff {
 		if user.RestaurantID == nil || *user.RestaurantID != restaurantID {
 			return fmt.Errorf("unauthorized: you are not assigned to this restaurant")
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) ReorderCategories(ctx context.Context, userID uuid.UUID, restaurantID uuid.UUID, categoryIDs []uuid.UUID) error {
+	user, err := s.getUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.verifyAccess(ctx, user, restaurantID); err != nil {
+		return err
+	}
+
+	for i, catID := range categoryIDs {
+		newOrder := i + 1
+		if _, err := s.queries.UpdateCategory(ctx, persistence.UpdateCategoryParams{
+			ID:           catID,
+			DisplayOrder: pgtype.Int4{Int32: int32(newOrder), Valid: true},
+		}); err != nil {
+			return fmt.Errorf("failed to update category order: %w", err)
 		}
 	}
 

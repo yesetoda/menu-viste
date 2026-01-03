@@ -1,12 +1,12 @@
 package rest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"menuvista/internal/models"
 	"menuvista/internal/services/restaurant"
-	"menuvista/internal/storage/persistence"
 	"menuvista/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -128,6 +128,7 @@ func (h *RestaurantHandler) ListMyRestaurants(c *gin.Context) {
 func (h *RestaurantHandler) ListRestaurants(c *gin.Context) {
 	log.Printf("[RestaurantHandler] ListRestaurants request received")
 	pagination := ParsePaginationParams(c)
+	fmt.Println("[RestaurantHandler] ListRestaurants pagination:", pagination)
 	filters, err := ParseFilterParams(c, "restaurants")
 	if err != nil {
 		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_FILTER")
@@ -136,8 +137,8 @@ func (h *RestaurantHandler) ListRestaurants(c *gin.Context) {
 
 	restaurantFilters := models.RestaurantFilter{
 		OwnerID: filters.OwnerID,
-		Status:  filters.Status,
-		Search:  filters.Search,
+		// Status:  filters.Status,
+		Search: filters.Search,
 	}
 
 	results, meta, err := h.service.ListRestaurantsWithFilters(c.Request.Context(), restaurantFilters, pagination)
@@ -166,6 +167,7 @@ func (h *RestaurantHandler) UpdateRestaurant(c *gin.Context) {
 	address := c.PostForm("address")
 	city := c.PostForm("city")
 	country := c.PostForm("country")
+	isPublished := c.PostForm("is_published") == "true"
 
 	restaurantID := utils.ToUUID(&restaurantIDStr)
 
@@ -189,6 +191,7 @@ func (h *RestaurantHandler) UpdateRestaurant(c *gin.Context) {
 		Address:     &address,
 		City:        &city,
 		Country:     &country,
+		IsPublished: &isPublished,
 		// TODO: Map other fields
 	}
 
@@ -235,63 +238,4 @@ func (h *RestaurantHandler) DeleteRestaurant(c *gin.Context) {
 
 	log.Printf("[RestaurantHandler] Restaurant deleted: %v", restaurantID)
 	RespondSuccess(c, http.StatusOK, gin.H{"message": "Restaurant deleted"}, nil)
-}
-
-// func (h *RestaurantHandler) UpdateRestaurantStatus(c *gin.Context) {
-// 	log.Printf("[RestaurantHandler] UpdateRestaurantStatus request received")
-// 	restaurantIDStr := c.Param("restaurant_id")
-// 	var req struct {
-// 		Status string `json:"status"`
-// 		Reason string `json:"reason"`
-// 	}
-// 	if err := c.ShouldBindJSON(&req); err != nil {
-// 		log.Printf("[RestaurantHandler] UpdateRestaurantStatus bind error: %v", err)
-// 		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
-// 		return
-// 	}
-
-// 	restaurantID := utils.ToUUID(&restaurantIDStr)
-
-// 	status := persistence.RestaurantStatus(req.Status)
-// 	if status != persistence.RestaurantStatusApproved && status != persistence.RestaurantStatusRejected && status != persistence.RestaurantStatusSuspended {
-// 		log.Printf("[RestaurantHandler] UpdateRestaurantStatus invalid status: %s", req.Status)
-// 		RespondError(c, http.StatusBadRequest, "Invalid status", "INVALID_STATUS")
-// 		return
-// 	}
-
-// 	restaurant, err := h.service.UpdateRestaurantStatus(c.Request.Context(), restaurantID, status, req.Reason)
-// 	if err != nil {
-// 		log.Printf("[RestaurantHandler] UpdateRestaurantStatus service error: %v", err)
-// 		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
-// 		return
-// 	}
-
-// 	log.Printf("[RestaurantHandler] Restaurant status updated: %v to %s", restaurant.ID, status)
-// 	RespondSuccess(c, http.StatusOK, restaurant, nil)
-// }
-
-func (h *RestaurantHandler) ListPendingRestaurants(c *gin.Context) {
-	log.Printf("[RestaurantHandler] ListPendingRestaurants request received")
-	pagination := ParsePaginationParams(c)
-	filters, err := ParseFilterParams(c, "restaurants")
-	if err != nil {
-		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_FILTER")
-		return
-	}
-	status := string(persistence.RestaurantStatusPending)
-	filters.Status = &status
-
-	restaurantFilters := models.RestaurantFilter{
-		OwnerID: filters.OwnerID,
-		Status:  filters.Status,
-		Search:  filters.Search,
-	}
-
-	results, meta, err := h.service.ListRestaurantsWithFilters(c.Request.Context(), restaurantFilters, pagination)
-	if err != nil {
-		log.Printf("[RestaurantHandler] ListPendingRestaurants service error: %v", err)
-		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
-		return
-	}
-	RespondSuccess(c, http.StatusOK, results, meta)
 }

@@ -14,7 +14,6 @@ import (
 	"menuvista/internal/services/restaurant"
 	"menuvista/internal/services/staff"
 	"menuvista/internal/services/subscription"
-	"menuvista/internal/services/user"
 	"menuvista/templates"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +32,6 @@ type Services struct {
 	Payment      *payment.Service
 	Webhook      *payment.WebhookService
 	Staff        *staff.Service
-	UserService  *user.UserService
 	Activity     *activity.Service
 	Analytics    *analytics.Service
 	Subscription *subscription.Service
@@ -60,12 +58,11 @@ func InitRouter(
 	// Initialize handlers
 	authH := rest.NewAuthHandler(services.Auth)
 	restH := rest.NewRestaurantHandler(services.Restaurant)
-	menuH := rest.NewMenuHandler(services.Menu)
+	menuH := rest.NewMenuHandler(services.Menu, services.Restaurant)
 	adminH := rest.NewAdminHandler(services.Admin, services.Restaurant)
 	paymentH := rest.NewPaymentHandler(services.Payment, services.Webhook)
 	webhookH := rest.NewWebhookHandler(services.Webhook)
 	staffH := rest.NewStaffHandler(services.Staff)
-	// UserH := rest.NewUserHandler(services.Staff)
 	activityH := rest.NewActivityHandler(services.Activity)
 
 	analyticsH := rest.NewAnalyticsHandler(services.Analytics)
@@ -168,8 +165,6 @@ func InitRouter(
 			payment := owner.Group("/payment")
 			{
 				payment.POST("/initiate", paymentH.InitiatePayment)
-				// payment.POST("/renew", paymentH.RenewSubscription)
-				// payment.POST("/upgrade", paymentH.UpgradeSubscription)
 			}
 		}
 
@@ -182,10 +177,7 @@ func InitRouter(
 			admin.GET("/restaurants", adminH.GetRestaurants)
 			admin.GET("/restaurants/:restaurant_id", adminH.GetRestaurantDetails)
 
-			admin.GET("/users", adminH.ListUsers)
 			admin.PATCH("/users/:user_id/status", adminH.UpdateUserStatus)
-
-			// admin.PATCH("/restaurants/:restaurant_id/status", restH.UpdateRestaurantStatus)
 		}
 	}
 

@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -49,6 +50,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	response, err := h.service.Login(c.Request.Context(), input)
+	fmt.Println("this is the input", input)
+	fmt.Println("this is the response", response)
 	if err != nil {
 		if err == auth.ErrPaymentRequired {
 			log.Printf("[AuthHandler] Payment required for user: %s", input.Email)

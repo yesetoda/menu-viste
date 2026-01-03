@@ -39,7 +39,7 @@ CREATE TABLE users (
     last_login_at TIMESTAMP,
     is_active BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);

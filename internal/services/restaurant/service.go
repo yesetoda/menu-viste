@@ -175,11 +175,11 @@ func (s *Service) DeleteRestaurant(ctx context.Context, id uuid.UUID, ownerID uu
 }
 
 func (s *Service) ListRestaurantsWithFilters(ctx context.Context, filters models.RestaurantFilter, pagination models.PaginationParams) ([]*models.Restaurant, *models.Meta, error) {
+	fmt.Println("this is the pagination data", pagination)
 	var ownerID uuid.UUID
 	if filters.OwnerID != nil {
 		ownerID = utils.ToUUID(filters.OwnerID)
 	}
-
 	// var status persistence.NullRestaurantStatus
 	// if filters.Status != nil {
 	// 	status = persistence.NullRestaurantStatus{
@@ -198,8 +198,7 @@ func (s *Service) ListRestaurantsWithFilters(ctx context.Context, filters models
 	fmt.Println("pagination", pagination)
 
 	rows, err := s.queries.ListRestaurantsWithFilters(ctx, persistence.ListRestaurantsWithFiltersParams{
-		OwnerID: &ownerID,
-		// Status:      status,
+		OwnerID:     &ownerID,
 		CuisineType: utils.ToText(filters.CuisineType),
 		City:        utils.ToText(filters.City),
 		Country:     utils.ToText(filters.Country),
@@ -212,16 +211,25 @@ func (s *Service) ListRestaurantsWithFilters(ctx context.Context, filters models
 		return nil, nil, fmt.Errorf("failed to list restaurants: %w", err)
 	}
 
+	totalRecords, err := s.queries.CountRestaurantsWithFilters(ctx, persistence.CountRestaurantsWithFiltersParams{
+		OwnerID:     ownerID,
+		CuisineType: utils.ToText(filters.CuisineType),
+		City:        utils.ToText(filters.City),
+		Country:     utils.ToText(filters.Country),
+		IsPublished: utils.ToBool(filters.IsPublished),
+		Search:      search,
+	})
+	if err != nil {
+		log.Printf("[RestaurantService] Warning: Failed to count restaurants: %v", err)
+	}
+
 	restaurants := make([]*models.Restaurant, len(rows))
 	for i, row := range rows {
 		restaurants[i] = s.mapToDomainRestaurant(row)
 	}
 
-	meta := &models.Meta{
-		Page:         pagination.Page,
-		PageSize:     pagination.PageSize,
-		TotalRecords: 0, // Unknown
-	}
+	fmt.Println("this is the pagination data", pagination)
+	meta := models.CalculateMeta(pagination.Page, pagination.PageSize, int(totalRecords))
 
 	return restaurants, meta, nil
 }

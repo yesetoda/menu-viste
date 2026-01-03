@@ -13,6 +13,188 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActivityLogsWithFilters = `-- name: CountActivityLogsWithFilters :one
+SELECT COUNT(*)
+FROM activity_logs al
+WHERE 
+    ($1::uuid IS NULL OR al.restaurant_id = $1) AND
+    ($2::uuid IS NULL OR al.user_id = $2) AND
+    ($3::text IS NULL OR al.action_type = $3) AND
+    ($4::text IS NULL OR al.action_category = $4) AND
+    ($5::text IS NULL OR al.target_type = $5) AND
+    ($6::uuid IS NULL OR al.target_id = $6) AND
+    ($7::boolean IS NULL OR al.success = $7) AND
+    ($8::text IS NULL OR al.description ILIKE '%' || $8 || '%' OR al.target_name ILIKE '%' || $8 || '%')
+`
+
+type CountActivityLogsWithFiltersParams struct {
+	RestaurantID   uuid.UUID   `db:"restaurant_id" json:"restaurant_id"`
+	UserID         uuid.UUID   `db:"user_id" json:"user_id"`
+	ActionType     pgtype.Text `db:"action_type" json:"action_type"`
+	ActionCategory pgtype.Text `db:"action_category" json:"action_category"`
+	TargetType     pgtype.Text `db:"target_type" json:"target_type"`
+	TargetID       uuid.UUID   `db:"target_id" json:"target_id"`
+	Success        pgtype.Bool `db:"success" json:"success"`
+	Search         pgtype.Text `db:"search" json:"search"`
+}
+
+func (q *Queries) CountActivityLogsWithFilters(ctx context.Context, arg CountActivityLogsWithFiltersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countActivityLogsWithFilters,
+		arg.RestaurantID,
+		arg.UserID,
+		arg.ActionType,
+		arg.ActionCategory,
+		arg.TargetType,
+		arg.TargetID,
+		arg.Success,
+		arg.Search,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAnalyticsEventsWithFilters = `-- name: CountAnalyticsEventsWithFilters :one
+SELECT COUNT(*) FROM analytics_events
+WHERE 
+    ($1::uuid IS NULL OR restaurant_id = $1) AND
+    ($2::text IS NULL OR event_type = $2) AND
+    ($3::text IS NULL OR visitor_id = $3) AND
+    ($4::uuid IS NULL OR session_id = $4) AND
+    ($5::uuid IS NULL OR target_id = $5) AND
+    ($6::text IS NULL OR country = $6) AND
+    ($7::text IS NULL OR city = $7)
+`
+
+type CountAnalyticsEventsWithFiltersParams struct {
+	RestaurantID uuid.UUID   `db:"restaurant_id" json:"restaurant_id"`
+	EventType    pgtype.Text `db:"event_type" json:"event_type"`
+	VisitorID    pgtype.Text `db:"visitor_id" json:"visitor_id"`
+	SessionID    uuid.UUID   `db:"session_id" json:"session_id"`
+	TargetID     uuid.UUID   `db:"target_id" json:"target_id"`
+	Country      pgtype.Text `db:"country" json:"country"`
+	City         pgtype.Text `db:"city" json:"city"`
+}
+
+func (q *Queries) CountAnalyticsEventsWithFilters(ctx context.Context, arg CountAnalyticsEventsWithFiltersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countAnalyticsEventsWithFilters,
+		arg.RestaurantID,
+		arg.EventType,
+		arg.VisitorID,
+		arg.SessionID,
+		arg.TargetID,
+		arg.Country,
+		arg.City,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countCategoriesByRestaurant = `-- name: CountCategoriesByRestaurant :one
+SELECT COUNT(*) FROM categories
+WHERE restaurant_id = $1
+`
+
+func (q *Queries) CountCategoriesByRestaurant(ctx context.Context, restaurantID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countCategoriesByRestaurant, restaurantID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countInvoicesWithFilters = `-- name: CountInvoicesWithFilters :one
+SELECT COUNT(*) FROM invoices
+WHERE 
+    ($1::uuid IS NULL OR owner_id = $1) AND
+    ($2::uuid IS NULL OR subscription_id = $2) AND
+    ($3::invoice_status IS NULL OR status = $3)
+`
+
+type CountInvoicesWithFiltersParams struct {
+	OwnerID        uuid.UUID         `db:"owner_id" json:"owner_id"`
+	SubscriptionID uuid.UUID         `db:"subscription_id" json:"subscription_id"`
+	Status         NullInvoiceStatus `db:"status" json:"status"`
+}
+
+func (q *Queries) CountInvoicesWithFilters(ctx context.Context, arg CountInvoicesWithFiltersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countInvoicesWithFilters, arg.OwnerID, arg.SubscriptionID, arg.Status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countMenuItemsByCategory = `-- name: CountMenuItemsByCategory :one
+SELECT COUNT(*) FROM menu_items
+WHERE category_id = $1 
+`
+
+func (q *Queries) CountMenuItemsByCategory(ctx context.Context, categoryID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countMenuItemsByCategory, categoryID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countMenuItemsByRestaurant = `-- name: CountMenuItemsByRestaurant :one
+SELECT COUNT(*) FROM menu_items
+WHERE restaurant_id = $1 
+`
+
+func (q *Queries) CountMenuItemsByRestaurant(ctx context.Context, restaurantID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countMenuItemsByRestaurant, restaurantID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+
+const countRestaurantsWithFilters = `-- name: CountRestaurantsWithFilters :one
+SELECT COUNT(*) FROM restaurants
+WHERE 
+    ($1::uuid IS NULL OR owner_id = $1) AND
+    ($2::text IS NULL OR cuisine_type = $2) AND
+    ($3::text IS NULL OR city = $3) AND
+    ($4::text IS NULL OR country = $4) AND
+    ($5::boolean IS NULL OR is_published = $5) AND
+    ($6::text IS NULL OR name ILIKE '%' || $6 || '%')
+`
+
+type CountRestaurantsWithFiltersParams struct {
+	OwnerID     uuid.UUID   `db:"owner_id" json:"owner_id"`
+	CuisineType pgtype.Text `db:"cuisine_type" json:"cuisine_type"`
+	City        pgtype.Text `db:"city" json:"city"`
+	Country     pgtype.Text `db:"country" json:"country"`
+	IsPublished pgtype.Bool `db:"is_published" json:"is_published"`
+	Search      pgtype.Text `db:"search" json:"search"`
+}
+
+func (q *Queries) CountRestaurantsWithFilters(ctx context.Context, arg CountRestaurantsWithFiltersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countRestaurantsWithFilters,
+		arg.OwnerID,
+		arg.CuisineType,
+		arg.City,
+		arg.Country,
+		arg.IsPublished,
+		arg.Search,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countStaffByRestaurant = `-- name: CountStaffByRestaurant :one
+SELECT COUNT(*) FROM users
+WHERE restaurant_id = $1 AND role = 'staff' 
+`
+
+func (q *Queries) CountStaffByRestaurant(ctx context.Context, restaurantID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countStaffByRestaurant, restaurantID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createActivityLog = `-- name: CreateActivityLog :one
 INSERT INTO activity_logs (
     restaurant_id, user_id, action_type, action_category, description, target_type, target_id, target_name, before_value, after_value, ip_address, user_agent, device_type, browser, os, success
@@ -28,7 +210,7 @@ type CreateActivityLogParams struct {
 	ActionCategory string      `db:"action_category" json:"action_category"`
 	Description    pgtype.Text `db:"description" json:"description"`
 	TargetType     pgtype.Text `db:"target_type" json:"target_type"`
-	TargetID       *uuid.UUID  `db:"target_id" json:"target_id"`
+	TargetID       uuid.UUID   `db:"target_id" json:"target_id"`
 	TargetName     pgtype.Text `db:"target_name" json:"target_name"`
 	BeforeValue    []byte      `db:"before_value" json:"before_value"`
 	AfterValue     []byte      `db:"after_value" json:"after_value"`
@@ -96,7 +278,7 @@ type CreateAnalyticsEventParams struct {
 	EventType    string      `db:"event_type" json:"event_type"`
 	VisitorID    string      `db:"visitor_id" json:"visitor_id"`
 	SessionID    uuid.UUID   `db:"session_id" json:"session_id"`
-	TargetID     *uuid.UUID  `db:"target_id" json:"target_id"`
+	TargetID     uuid.UUID   `db:"target_id" json:"target_id"`
 	IpAddress    pgtype.Text `db:"ip_address" json:"ip_address"`
 	DeviceType   pgtype.Text `db:"device_type" json:"device_type"`
 	Browser      pgtype.Text `db:"browser" json:"browser"`
@@ -402,7 +584,7 @@ INSERT INTO restaurants (
     owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-) RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published,  view_count, rank_score, created_at, updated_at
+) RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, view_count, rank_score, created_at, updated_at
 `
 
 type CreateRestaurantParams struct {
@@ -561,7 +743,7 @@ INSERT INTO users (
     email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at
+) RETURNING id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at
 `
 
 type CreateUserParams struct {
@@ -569,8 +751,8 @@ type CreateUserParams struct {
 	PasswordHash string      `db:"password_hash" json:"password_hash"`
 	FullName     string      `db:"full_name" json:"full_name"`
 	Role         UserRole    `db:"role" json:"role"`
-	OwnerID      *uuid.UUID  `db:"owner_id" json:"owner_id"`
-	RestaurantID *uuid.UUID  `db:"restaurant_id" json:"restaurant_id"`
+	OwnerID      uuid.UUID   `db:"owner_id" json:"owner_id"`
+	RestaurantID uuid.UUID   `db:"restaurant_id" json:"restaurant_id"`
 	Phone        pgtype.Text `db:"phone" json:"phone"`
 	AvatarUrl    pgtype.Text `db:"avatar_url" json:"avatar_url"`
 }
@@ -638,27 +820,35 @@ type DeleteRestaurantParams struct {
 }
 
 func (q *Queries) DeleteRestaurant(ctx context.Context, arg DeleteRestaurantParams) error {
-	_, err := q.db.Exec(ctx, deleteRestaurant, arg.ID, arg.OwnerID)
+	res, err := q.db.Exec(ctx, deleteRestaurant, arg.ID, arg.OwnerID)
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("restaurant not found")
+	}
 	return err
 }
 
 const deleteStaff = `-- name: DeleteStaff :exec
-DELETE FROM users
+delete from users
 WHERE id = $1 AND restaurant_id = $2 AND role = 'staff'
 `
 
 type DeleteStaffParams struct {
-	ID           uuid.UUID  `db:"id" json:"id"`
-	RestaurantID *uuid.UUID `db:"restaurant_id" json:"restaurant_id"`
+	ID           uuid.UUID `db:"id" json:"id"`
+	RestaurantID uuid.UUID `db:"restaurant_id" json:"restaurant_id"`
 }
 
 func (q *Queries) DeleteStaff(ctx context.Context, arg DeleteStaffParams) error {
-	_, err := q.db.Exec(ctx, deleteStaff, arg.ID, arg.RestaurantID)
+	fmt.Println("Deleting staff with ID:", arg.ID)
+	fmt.Println("Deleting staff with Restaurant ID:", arg.RestaurantID)
+	res, err := q.db.Exec(ctx, deleteStaff, arg.ID, arg.RestaurantID)
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("staff not found")
+	}
 	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users WHERE id = $1
+delete from users WHERE id = $1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
@@ -666,10 +856,56 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getActiveSubscriptionByOwner = `-- name: GetActiveSubscriptionByOwner :one
+SELECT s.id, s.owner_id, s.plan_id, s.status, s.current_period_start, s.current_period_end, s.trial_end, s.cancelled_at, s.payment_provider_subscription_id, s.created_at, s.updated_at, sp.name as plan_name, sp.slug as plan_slug, sp.features
+FROM subscriptions s
+JOIN subscription_plans sp ON s.plan_id = sp.id
+WHERE s.owner_id = $1 AND s.status = 'active' LIMIT 1
+`
+
+type GetActiveSubscriptionByOwnerRow struct {
+	ID                            uuid.UUID          `db:"id" json:"id"`
+	OwnerID                       uuid.UUID          `db:"owner_id" json:"owner_id"`
+	PlanID                        uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status                        SubscriptionStatus `db:"status" json:"status"`
+	CurrentPeriodStart            pgtype.Timestamp   `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd              pgtype.Timestamp   `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                      pgtype.Timestamp   `db:"trial_end" json:"trial_end"`
+	CancelledAt                   pgtype.Timestamp   `db:"cancelled_at" json:"cancelled_at"`
+	PaymentProviderSubscriptionID pgtype.Text        `db:"payment_provider_subscription_id" json:"payment_provider_subscription_id"`
+	CreatedAt                     pgtype.Timestamp   `db:"created_at" json:"created_at"`
+	UpdatedAt                     pgtype.Timestamp   `db:"updated_at" json:"updated_at"`
+	PlanName                      string             `db:"plan_name" json:"plan_name"`
+	PlanSlug                      string             `db:"plan_slug" json:"plan_slug"`
+	Features                      []byte             `db:"features" json:"features"`
+}
+
+func (q *Queries) GetActiveSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetActiveSubscriptionByOwnerRow, error) {
+	row := q.db.QueryRow(ctx, getActiveSubscriptionByOwner, ownerID)
+	var i GetActiveSubscriptionByOwnerRow
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.PlanID,
+		&i.Status,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelledAt,
+		&i.PaymentProviderSubscriptionID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PlanName,
+		&i.PlanSlug,
+		&i.Features,
+	)
+	return i, err
+}
+
 const getAdminDashboardStats = `-- name: GetAdminDashboardStats :one
 SELECT 
-    (SELECT COUNT(*) FROM users) as total_users,
-    (SELECT COUNT(*) FROM restaurants) as total_restaurants,
+    (SELECT COUNT(*) FROM users ) as total_users,
+    (SELECT COUNT(*) FROM restaurants ) as total_restaurants,
     (SELECT COUNT(*) FROM subscriptions WHERE status = 'active') as active_subscriptions,
     (SELECT SUM(amount) FROM invoices WHERE status = 'paid') as total_revenue
 `
@@ -783,6 +1019,54 @@ func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, 
 	return i, err
 }
 
+const getLatestSubscriptionByOwner = `-- name: GetLatestSubscriptionByOwner :one
+SELECT s.id, s.owner_id, s.plan_id, s.status, s.current_period_start, s.current_period_end, s.trial_end, s.cancelled_at, s.payment_provider_subscription_id, s.created_at, s.updated_at, sp.name as plan_name, sp.slug as plan_slug, sp.features
+FROM subscriptions s
+JOIN subscription_plans sp ON s.plan_id = sp.id
+WHERE s.owner_id = $1 
+ORDER BY s.created_at DESC
+LIMIT 1
+`
+
+type GetLatestSubscriptionByOwnerRow struct {
+	ID                            uuid.UUID          `db:"id" json:"id"`
+	OwnerID                       uuid.UUID          `db:"owner_id" json:"owner_id"`
+	PlanID                        uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status                        SubscriptionStatus `db:"status" json:"status"`
+	CurrentPeriodStart            pgtype.Timestamp   `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd              pgtype.Timestamp   `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                      pgtype.Timestamp   `db:"trial_end" json:"trial_end"`
+	CancelledAt                   pgtype.Timestamp   `db:"cancelled_at" json:"cancelled_at"`
+	PaymentProviderSubscriptionID pgtype.Text        `db:"payment_provider_subscription_id" json:"payment_provider_subscription_id"`
+	CreatedAt                     pgtype.Timestamp   `db:"created_at" json:"created_at"`
+	UpdatedAt                     pgtype.Timestamp   `db:"updated_at" json:"updated_at"`
+	PlanName                      string             `db:"plan_name" json:"plan_name"`
+	PlanSlug                      string             `db:"plan_slug" json:"plan_slug"`
+	Features                      []byte             `db:"features" json:"features"`
+}
+
+func (q *Queries) GetLatestSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetLatestSubscriptionByOwnerRow, error) {
+	row := q.db.QueryRow(ctx, getLatestSubscriptionByOwner, ownerID)
+	var i GetLatestSubscriptionByOwnerRow
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.PlanID,
+		&i.Status,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelledAt,
+		&i.PaymentProviderSubscriptionID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PlanName,
+		&i.PlanSlug,
+		&i.Features,
+	)
+	return i, err
+}
+
 const getMenuItemByID = `-- name: GetMenuItemByID :one
 SELECT id, restaurant_id, category_id, name, description, price, currency, images, allergens, dietary_tags, spice_level, calories, is_available, display_order, view_count, created_by, created_at, updated_at FROM menu_items
 WHERE id = $1  LIMIT 1
@@ -853,7 +1137,7 @@ type GetRecentAdminLogsRow struct {
 	ActionCategory string           `db:"action_category" json:"action_category"`
 	Description    pgtype.Text      `db:"description" json:"description"`
 	TargetType     pgtype.Text      `db:"target_type" json:"target_type"`
-	TargetID       *uuid.UUID       `db:"target_id" json:"target_id"`
+	TargetID       uuid.UUID        `db:"target_id" json:"target_id"`
 	TargetName     pgtype.Text      `db:"target_name" json:"target_name"`
 	BeforeValue    []byte           `db:"before_value" json:"before_value"`
 	AfterValue     []byte           `db:"after_value" json:"after_value"`
@@ -910,7 +1194,7 @@ func (q *Queries) GetRecentAdminLogs(ctx context.Context, limit int32) ([]GetRec
 }
 
 const getRestaurantByID = `-- name: GetRestaurantByID :one
-SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published,  view_count, rank_score, created_at, updated_at FROM restaurants
+SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, view_count, rank_score, created_at, updated_at FROM restaurants
 WHERE id = $1  LIMIT 1
 `
 
@@ -948,7 +1232,6 @@ WHERE slug = $1  LIMIT 1
 `
 
 func (q *Queries) GetRestaurantBySlug(ctx context.Context, slug string) (Restaurant, error) {
-	fmt.Println("slug", slug)
 	row := q.db.QueryRow(ctx, getRestaurantBySlug, slug)
 	var i Restaurant
 	err := row.Scan(
@@ -977,7 +1260,7 @@ func (q *Queries) GetRestaurantBySlug(ctx context.Context, slug string) (Restaur
 }
 
 const getRestaurantDetailsForAdmin = `-- name: GetRestaurantDetailsForAdmin :one
-SELECT r.id, r.owner_id, r.name, r.slug, r.description, r.cuisine_type, r.phone, r.email, r.website, r.address, r.city, r.country, r.logo_url, r.cover_image_url, r.theme_settings, r.is_published, r.status, r.view_count, r.rank_score, r.created_at, r.updated_at, r. u.full_name as owner_name, u.email as owner_email
+SELECT r.id, r.owner_id, r.name, r.slug, r.description, r.cuisine_type, r.phone, r.email, r.website, r.address, r.city, r.country, r.logo_url, r.cover_image_url, r.theme_settings, r.is_published, r.view_count, r.rank_score, r.created_at, r.updated_at, u.full_name as owner_name, u.email as owner_email
 FROM restaurants r
 JOIN users u ON r.owner_id = u.id
 WHERE r.id = $1
@@ -1000,14 +1283,12 @@ type GetRestaurantDetailsForAdminRow struct {
 	CoverImageUrl pgtype.Text      `db:"cover_image_url" json:"cover_image_url"`
 	ThemeSettings []byte           `db:"theme_settings" json:"theme_settings"`
 	IsPublished   bool             `db:"is_published" json:"is_published"`
-	Status        RestaurantStatus `db:"status" json:"status"`
 	ViewCount     pgtype.Int4      `db:"view_count" json:"view_count"`
 	RankScore     pgtype.Numeric   `db:"rank_score" json:"rank_score"`
 	CreatedAt     pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt     pgtype.Timestamp `db:"updated_at" json:"updated_at"`
-
-	OwnerName  string `db:"owner_name" json:"owner_name"`
-	OwnerEmail string `db:"owner_email" json:"owner_email"`
+	OwnerName     string           `db:"owner_name" json:"owner_name"`
+	OwnerEmail    string           `db:"owner_email" json:"owner_email"`
 }
 
 func (q *Queries) GetRestaurantDetailsForAdmin(ctx context.Context, id uuid.UUID) (GetRestaurantDetailsForAdminRow, error) {
@@ -1030,107 +1311,12 @@ func (q *Queries) GetRestaurantDetailsForAdmin(ctx context.Context, id uuid.UUID
 		&i.CoverImageUrl,
 		&i.ThemeSettings,
 		&i.IsPublished,
-		&i.Status,
 		&i.ViewCount,
 		&i.RankScore,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.OwnerName,
 		&i.OwnerEmail,
-	)
-	return i, err
-}
-
-const getActiveSubscriptionByOwner = `-- name: GetActiveSubscriptionByOwner :one
-SELECT s.id, s.owner_id, s.plan_id, s.status, s.current_period_start, s.current_period_end, s.trial_end, s.cancelled_at, s.payment_provider_subscription_id, s.created_at, s.updated_at, sp.name as plan_name, sp.slug as plan_slug, sp.features
-FROM subscriptions s
-JOIN subscription_plans sp ON s.plan_id = sp.id
-WHERE s.owner_id = $1 AND s.status = 'active' LIMIT 1
-`
-
-const getLatestSubscriptionByOwner = `-- name: GetLatestSubscriptionByOwner :one
-SELECT s.id, s.owner_id, s.plan_id, s.status, s.current_period_start, s.current_period_end, s.trial_end, s.cancelled_at, s.payment_provider_subscription_id, s.created_at, s.updated_at, sp.name as plan_name, sp.slug as plan_slug, sp.features
-FROM subscriptions s
-JOIN subscription_plans sp ON s.plan_id = sp.id
-WHERE s.owner_id = $1 
-ORDER BY s.created_at DESC
-LIMIT 1
-`
-
-type GetActiveSubscriptionByOwnerRow struct {
-	ID                            uuid.UUID          `db:"id" json:"id"`
-	OwnerID                       uuid.UUID          `db:"owner_id" json:"owner_id"`
-	PlanID                        uuid.UUID          `db:"plan_id" json:"plan_id"`
-	Status                        SubscriptionStatus `db:"status" json:"status"`
-	CurrentPeriodStart            pgtype.Timestamp   `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd              pgtype.Timestamp   `db:"current_period_end" json:"current_period_end"`
-	TrialEnd                      pgtype.Timestamp   `db:"trial_end" json:"trial_end"`
-	CancelledAt                   pgtype.Timestamp   `db:"cancelled_at" json:"cancelled_at"`
-	PaymentProviderSubscriptionID pgtype.Text        `db:"payment_provider_subscription_id" json:"payment_provider_subscription_id"`
-	CreatedAt                     pgtype.Timestamp   `db:"created_at" json:"created_at"`
-	UpdatedAt                     pgtype.Timestamp   `db:"updated_at" json:"updated_at"`
-	PlanName                      string             `db:"plan_name" json:"plan_name"`
-	PlanSlug                      string             `db:"plan_slug" json:"plan_slug"`
-	Features                      []byte             `db:"features" json:"features"`
-}
-
-func (q *Queries) GetActiveSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetActiveSubscriptionByOwnerRow, error) {
-	row := q.db.QueryRow(ctx, getActiveSubscriptionByOwner, ownerID)
-	var i GetActiveSubscriptionByOwnerRow
-	err := row.Scan(
-		&i.ID,
-		&i.OwnerID,
-		&i.PlanID,
-		&i.Status,
-		&i.CurrentPeriodStart,
-		&i.CurrentPeriodEnd,
-		&i.TrialEnd,
-		&i.CancelledAt,
-		&i.PaymentProviderSubscriptionID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PlanName,
-		&i.PlanSlug,
-		&i.Features,
-	)
-	return i, err
-}
-
-type GetLatestSubscriptionByOwnerRow struct {
-	ID                            uuid.UUID          `db:"id" json:"id"`
-	OwnerID                       uuid.UUID          `db:"owner_id" json:"owner_id"`
-	PlanID                        uuid.UUID          `db:"plan_id" json:"plan_id"`
-	Status                        SubscriptionStatus `db:"status" json:"status"`
-	CurrentPeriodStart            pgtype.Timestamp   `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd              pgtype.Timestamp   `db:"current_period_end" json:"current_period_end"`
-	TrialEnd                      pgtype.Timestamp   `db:"trial_end" json:"trial_end"`
-	CancelledAt                   pgtype.Timestamp   `db:"cancelled_at" json:"cancelled_at"`
-	PaymentProviderSubscriptionID pgtype.Text        `db:"payment_provider_subscription_id" json:"payment_provider_subscription_id"`
-	CreatedAt                     pgtype.Timestamp   `db:"created_at" json:"created_at"`
-	UpdatedAt                     pgtype.Timestamp   `db:"updated_at" json:"updated_at"`
-	PlanName                      string             `db:"plan_name" json:"plan_name"`
-	PlanSlug                      string             `db:"plan_slug" json:"plan_slug"`
-	Features                      []byte             `db:"features" json:"features"`
-}
-
-func (q *Queries) GetLatestSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetLatestSubscriptionByOwnerRow, error) {
-	row := q.db.QueryRow(ctx, getLatestSubscriptionByOwner, ownerID)
-	var i GetLatestSubscriptionByOwnerRow
-	err := row.Scan(
-		&i.ID,
-		&i.OwnerID,
-		&i.PlanID,
-		&i.Status,
-		&i.CurrentPeriodStart,
-		&i.CurrentPeriodEnd,
-		&i.TrialEnd,
-		&i.CancelledAt,
-		&i.PaymentProviderSubscriptionID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PlanName,
-		&i.PlanSlug,
-		&i.Features,
 	)
 	return i, err
 }
@@ -1162,7 +1348,7 @@ func (q *Queries) GetSubscriptionPlanBySlug(ctx context.Context, slug string) (S
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
-WHERE email = $1  LIMIT 1
+WHERE email = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -1192,7 +1378,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
+SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
 WHERE id = $1  LIMIT 1
 `
 
@@ -1263,7 +1449,7 @@ type ListActivityLogsByRestaurantRow struct {
 	ActionCategory string           `db:"action_category" json:"action_category"`
 	Description    pgtype.Text      `db:"description" json:"description"`
 	TargetType     pgtype.Text      `db:"target_type" json:"target_type"`
-	TargetID       *uuid.UUID       `db:"target_id" json:"target_id"`
+	TargetID       uuid.UUID        `db:"target_id" json:"target_id"`
 	TargetName     pgtype.Text      `db:"target_name" json:"target_name"`
 	BeforeValue    []byte           `db:"before_value" json:"before_value"`
 	AfterValue     []byte           `db:"after_value" json:"after_value"`
@@ -1339,12 +1525,12 @@ LIMIT $1 OFFSET $2
 type ListActivityLogsWithFiltersParams struct {
 	Limit          int32       `db:"limit" json:"limit"`
 	Offset         int32       `db:"offset" json:"offset"`
-	RestaurantID   *uuid.UUID  `db:"restaurant_id" json:"restaurant_id"`
-	UserID         *uuid.UUID  `db:"user_id" json:"user_id"`
+	RestaurantID   uuid.UUID   `db:"restaurant_id" json:"restaurant_id"`
+	UserID         uuid.UUID   `db:"user_id" json:"user_id"`
 	ActionType     pgtype.Text `db:"action_type" json:"action_type"`
 	ActionCategory pgtype.Text `db:"action_category" json:"action_category"`
 	TargetType     pgtype.Text `db:"target_type" json:"target_type"`
-	TargetID       *uuid.UUID  `db:"target_id" json:"target_id"`
+	TargetID       uuid.UUID   `db:"target_id" json:"target_id"`
 	Success        pgtype.Bool `db:"success" json:"success"`
 	Search         pgtype.Text `db:"search" json:"search"`
 }
@@ -1357,7 +1543,7 @@ type ListActivityLogsWithFiltersRow struct {
 	ActionCategory string           `db:"action_category" json:"action_category"`
 	Description    pgtype.Text      `db:"description" json:"description"`
 	TargetType     pgtype.Text      `db:"target_type" json:"target_type"`
-	TargetID       *uuid.UUID       `db:"target_id" json:"target_id"`
+	TargetID       uuid.UUID        `db:"target_id" json:"target_id"`
 	TargetName     pgtype.Text      `db:"target_name" json:"target_name"`
 	BeforeValue    []byte           `db:"before_value" json:"before_value"`
 	AfterValue     []byte           `db:"after_value" json:"after_value"`
@@ -1441,11 +1627,11 @@ LIMIT $1 OFFSET $2
 type ListAnalyticsEventsWithFiltersParams struct {
 	Limit        int32       `db:"limit" json:"limit"`
 	Offset       int32       `db:"offset" json:"offset"`
-	RestaurantID *uuid.UUID  `db:"restaurant_id" json:"restaurant_id"`
+	RestaurantID uuid.UUID   `db:"restaurant_id" json:"restaurant_id"`
 	EventType    pgtype.Text `db:"event_type" json:"event_type"`
 	VisitorID    pgtype.Text `db:"visitor_id" json:"visitor_id"`
-	SessionID    *uuid.UUID  `db:"session_id" json:"session_id"`
-	TargetID     *uuid.UUID  `db:"target_id" json:"target_id"`
+	SessionID    uuid.UUID   `db:"session_id" json:"session_id"`
+	TargetID     uuid.UUID   `db:"target_id" json:"target_id"`
 	Country      pgtype.Text `db:"country" json:"country"`
 	City         pgtype.Text `db:"city" json:"city"`
 }
@@ -1584,8 +1770,8 @@ LIMIT $1 OFFSET $2
 type ListInvoicesWithFiltersParams struct {
 	Limit          int32             `db:"limit" json:"limit"`
 	Offset         int32             `db:"offset" json:"offset"`
-	OwnerID        *uuid.UUID        `db:"owner_id" json:"owner_id"`
-	SubscriptionID *uuid.UUID        `db:"subscription_id" json:"subscription_id"`
+	OwnerID        uuid.UUID         `db:"owner_id" json:"owner_id"`
+	SubscriptionID uuid.UUID         `db:"subscription_id" json:"subscription_id"`
 	Status         NullInvoiceStatus `db:"status" json:"status"`
 }
 
@@ -1770,11 +1956,11 @@ const listRestaurantsWithFilters = `-- name: ListRestaurantsWithFilters :many
 SELECT id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, view_count, rank_score, created_at, updated_at FROM restaurants
 WHERE 
     ($3::uuid IS NULL OR owner_id = $3) AND
-    ($4::boolean IS NULL OR is_published = $4) AND
-    ($5::text IS NULL OR cuisine_type = $5) AND
-    ($6::text IS NULL OR city = $6) AND
-    ($7::text IS NULL OR country = $7) AND
-    ($8::text IS NULL OR name ILIKE '%' || $8 || '%') 
+    ($4::text IS NULL OR cuisine_type = $4) AND
+    ($5::text IS NULL OR city = $5) AND
+    ($6::text IS NULL OR country = $6) AND
+    ($7::boolean IS NULL OR is_published = $7) AND
+    ($8::text IS NULL OR name ILIKE '%' || $8 || '%')
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -1791,25 +1977,22 @@ type ListRestaurantsWithFiltersParams struct {
 }
 
 func (q *Queries) ListRestaurantsWithFilters(ctx context.Context, arg ListRestaurantsWithFiltersParams) ([]Restaurant, error) {
-	var ownerId any
-	var isPublished bool
+	var ownerID any
 	if arg.OwnerID != nil && *arg.OwnerID != uuid.Nil {
-		ownerId = *arg.OwnerID
-		isPublished = arg.IsPublished.Bool
+		ownerID = *arg.OwnerID
 	} else {
-		ownerId = nil
-		isPublished = true
+		ownerID = nil
 	}
-	fmt.Println("ownerId", ownerId)
-	fmt.Println("isPublished", isPublished)
+	fmt.Println(ownerID)
+	fmt.Println(arg)
 	rows, err := q.db.Query(ctx, listRestaurantsWithFilters,
 		arg.Limit,
 		arg.Offset,
-		ownerId,
-		isPublished,
+		ownerID,
 		arg.CuisineType,
 		arg.City,
 		arg.Country,
+		arg.IsPublished,
 		arg.Search,
 	)
 	if err != nil {
@@ -1852,12 +2035,12 @@ func (q *Queries) ListRestaurantsWithFilters(ctx context.Context, arg ListRestau
 }
 
 const listStaffByOwner = `-- name: ListStaffByOwner :many
-SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
+SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
 WHERE owner_id = $1 AND role = 'staff' 
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListStaffByOwner(ctx context.Context, ownerID *uuid.UUID) ([]User, error) {
+func (q *Queries) ListStaffByOwner(ctx context.Context, ownerID uuid.UUID) ([]User, error) {
 	rows, err := q.db.Query(ctx, listStaffByOwner, ownerID)
 	if err != nil {
 		return nil, err
@@ -1881,7 +2064,6 @@ func (q *Queries) ListStaffByOwner(ctx context.Context, ownerID *uuid.UUID) ([]U
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-
 			&i.EmailVerifiedAt,
 			&i.VerificationToken,
 			&i.VerificationTokenExpiresAt,
@@ -1898,13 +2080,20 @@ func (q *Queries) ListStaffByOwner(ctx context.Context, ownerID *uuid.UUID) ([]U
 }
 
 const listStaffByRestaurant = `-- name: ListStaffByRestaurant :many
-SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
+SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
 WHERE restaurant_id = $1 AND role = 'staff' 
 ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListStaffByRestaurant(ctx context.Context, restaurantID *uuid.UUID) ([]User, error) {
-	rows, err := q.db.Query(ctx, listStaffByRestaurant, restaurantID)
+type ListStaffByRestaurantParams struct {
+	RestaurantID uuid.UUID `db:"restaurant_id" json:"restaurant_id"`
+	Limit        int32     `db:"limit" json:"limit"`
+	Offset       int32     `db:"offset" json:"offset"`
+}
+
+func (q *Queries) ListStaffByRestaurant(ctx context.Context, arg ListStaffByRestaurantParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, listStaffByRestaurant, arg.RestaurantID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -1927,7 +2116,6 @@ func (q *Queries) ListStaffByRestaurant(ctx context.Context, restaurantID *uuid.
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-
 			&i.EmailVerifiedAt,
 			&i.VerificationToken,
 			&i.VerificationTokenExpiresAt,
@@ -1983,7 +2171,7 @@ func (q *Queries) ListSubscriptionPlans(ctx context.Context) ([]SubscriptionPlan
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
+SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -2017,7 +2205,6 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-
 			&i.EmailVerifiedAt,
 			&i.VerificationToken,
 			&i.VerificationTokenExpiresAt,
@@ -2034,7 +2221,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 }
 
 const listUsersWithFilters = `-- name: ListUsersWithFilters :many
-SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
+SELECT id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at FROM users
 WHERE 
     ($3::text IS NULL OR email = $3) AND
     ($4::user_role IS NULL OR role = $4) AND
@@ -2084,7 +2271,6 @@ func (q *Queries) ListUsersWithFilters(ctx context.Context, arg ListUsersWithFil
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-
 			&i.EmailVerifiedAt,
 			&i.VerificationToken,
 			&i.VerificationTokenExpiresAt,
@@ -2195,24 +2381,22 @@ func (q *Queries) UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStat
 const updateMenuItem = `-- name: UpdateMenuItem :one
 UPDATE menu_items
 SET 
-    category_id = COALESCE($1, category_id),
-    name = COALESCE($2, name),
-    description = COALESCE($3, description),
-    price = COALESCE($4, price),
-    images = COALESCE($5, images),
-    allergens = COALESCE($6, allergens),
-    dietary_tags = COALESCE($7, dietary_tags),
-    spice_level = COALESCE($8, spice_level),
-    calories = COALESCE($9, calories),
-    is_available = COALESCE($10, is_available),
-    display_order = COALESCE($11, display_order),
+    name = COALESCE($1, name),
+    description = COALESCE($2, description),
+    price = COALESCE($3, price),
+    images = COALESCE($4, images),
+    allergens = COALESCE($5, allergens),
+    dietary_tags = COALESCE($6, dietary_tags),
+    spice_level = COALESCE($7, spice_level),
+    calories = COALESCE($8, calories),
+    is_available = COALESCE($9, is_available),
+    display_order = COALESCE($10, display_order),
     updated_at = NOW()
-WHERE id = $12
+WHERE id = $11
 RETURNING id, restaurant_id, category_id, name, description, price, currency, images, allergens, dietary_tags, spice_level, calories, is_available, display_order, view_count, created_by, created_at, updated_at
 `
 
 type UpdateMenuItemParams struct {
-	CategoryID   *uuid.UUID     `db:"category_id" json:"category_id"`
 	Name         pgtype.Text    `db:"name" json:"name"`
 	Description  pgtype.Text    `db:"description" json:"description"`
 	Price        pgtype.Numeric `db:"price" json:"price"`
@@ -2228,7 +2412,6 @@ type UpdateMenuItemParams struct {
 
 func (q *Queries) UpdateMenuItem(ctx context.Context, arg UpdateMenuItemParams) (MenuItem, error) {
 	row := q.db.QueryRow(ctx, updateMenuItem,
-		arg.CategoryID,
 		arg.Name,
 		arg.Description,
 		arg.Price,
@@ -2263,6 +2446,22 @@ func (q *Queries) UpdateMenuItem(ctx context.Context, arg UpdateMenuItemParams) 
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateOldSubscriptionsStatus = `-- name: UpdateOldSubscriptionsStatus :exec
+UPDATE subscriptions
+SET status = 'updated', updated_at = NOW()
+WHERE owner_id = $1 AND id != $2 AND status != 'updated'
+`
+
+type UpdateOldSubscriptionsStatusParams struct {
+	OwnerID uuid.UUID `db:"owner_id" json:"owner_id"`
+	ID      uuid.UUID `db:"id" json:"id"`
+}
+
+func (q *Queries) UpdateOldSubscriptionsStatus(ctx context.Context, arg UpdateOldSubscriptionsStatusParams) error {
+	_, err := q.db.Exec(ctx, updateOldSubscriptionsStatus, arg.OwnerID, arg.ID)
+	return err
 }
 
 const updatePaymentRetryJob = `-- name: UpdatePaymentRetryJob :one
@@ -2349,7 +2548,7 @@ SET
     theme_settings = COALESCE($12, theme_settings),
     is_published = COALESCE($13, is_published),
     updated_at = NOW()
-WHERE id = $15 AND (owner_id = $16 OR $17::boolean)
+WHERE id = $14 AND (owner_id = $15 OR $16::boolean)
 RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, view_count, rank_score, created_at, updated_at
 `
 
@@ -2392,7 +2591,6 @@ func (q *Queries) UpdateRestaurant(ctx context.Context, arg UpdateRestaurantPara
 		arg.IsAdmin,
 	)
 	var i Restaurant
-	fmt.Println("scan error")
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
@@ -2418,46 +2616,6 @@ func (q *Queries) UpdateRestaurant(ctx context.Context, arg UpdateRestaurantPara
 	return i, err
 }
 
-// const updateRestaurantStatus = `-- name: UpdateRestaurantStatus :one
-// UPDATE restaurants
-// SET status = $2, updated_at = NOW()
-// WHERE id = $1
-// RETURNING id, owner_id, name, slug, description, cuisine_type, phone, email, website, address, city, country, logo_url, cover_image_url, theme_settings, is_published, status, view_count, rank_score, created_at, updated_at
-// `
-
-// type UpdateRestaurantStatusParams struct {
-// 	ID     uuid.UUID        `db:"id" json:"id"`
-// 	Status RestaurantStatus `db:"status" json:"status"`
-// }
-
-// func (q *Queries) UpdateRestaurantStatus(ctx context.Context, arg UpdateRestaurantStatusParams) (Restaurant, error) {
-// 	row := q.db.QueryRow(ctx, updateRestaurantStatus, arg.ID, arg.Status)
-// 	var i Restaurant
-// 	err := row.Scan(
-// 		&i.ID,
-// 		&i.OwnerID,
-// 		&i.Name,
-// 		&i.Slug,
-// 		&i.Description,
-// 		&i.CuisineType,
-// 		&i.Phone,
-// 		&i.Email,
-// 		&i.Website,
-// 		&i.Address,
-// 		&i.City,
-// 		&i.Country,
-// 		&i.LogoUrl,
-// 		&i.CoverImageUrl,
-// 		&i.ThemeSettings,
-// 		&i.IsPublished,
-// 		&i.ViewCount,
-// 		&i.RankScore,
-// 		&i.CreatedAt,
-// 		&i.UpdatedAt,
-// 	)
-// 	return i, err
-// }
-
 const updateStaffStatus = `-- name: UpdateStaffStatus :exec
 UPDATE users
 SET is_active = $3, updated_at = NOW()
@@ -2465,9 +2623,9 @@ WHERE id = $1 AND restaurant_id = $2 AND role = 'staff'
 `
 
 type UpdateStaffStatusParams struct {
-	ID           uuid.UUID  `db:"id" json:"id"`
-	RestaurantID *uuid.UUID `db:"restaurant_id" json:"restaurant_id"`
-	IsActive     bool       `db:"is_active" json:"is_active"`
+	ID           uuid.UUID `db:"id" json:"id"`
+	RestaurantID uuid.UUID `db:"restaurant_id" json:"restaurant_id"`
+	IsActive     bool      `db:"is_active" json:"is_active"`
 }
 
 func (q *Queries) UpdateStaffStatus(ctx context.Context, arg UpdateStaffStatusParams) error {
@@ -2490,7 +2648,7 @@ RETURNING id, owner_id, plan_id, status, current_period_start, current_period_en
 `
 
 type UpdateSubscriptionParams struct {
-	PlanID             *uuid.UUID             `db:"plan_id" json:"plan_id"`
+	PlanID             uuid.UUID              `db:"plan_id" json:"plan_id"`
 	Status             NullSubscriptionStatus `db:"status" json:"status"`
 	CurrentPeriodStart pgtype.Timestamp       `db:"current_period_start" json:"current_period_start"`
 	CurrentPeriodEnd   pgtype.Timestamp       `db:"current_period_end" json:"current_period_end"`
@@ -2537,7 +2695,7 @@ SET
     is_active = COALESCE($6, is_active),
     updated_at = NOW()
 WHERE id = $7
-RETURNING id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at,  email_verified_at, verification_token, verification_token_expires_at, trial_ends_at
+RETURNING id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at
 `
 
 type UpdateUserParams struct {
@@ -2601,7 +2759,7 @@ type UpsertAnalyticsAggregateParams struct {
 	Date         pgtype.Date `db:"date" json:"date"`
 	Hour         pgtype.Int4 `db:"hour" json:"hour"`
 	MetricType   string      `db:"metric_type" json:"metric_type"`
-	TargetID     *uuid.UUID  `db:"target_id" json:"target_id"`
+	TargetID     uuid.UUID   `db:"target_id" json:"target_id"`
 	Value        pgtype.Int4 `db:"value" json:"value"`
 }
 
@@ -2627,20 +2785,4 @@ func (q *Queries) UpsertAnalyticsAggregate(ctx context.Context, arg UpsertAnalyt
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const updateOldSubscriptionsStatus = `-- name: UpdateOldSubscriptionsStatus :exec
-UPDATE subscriptions
-SET status = 'updated', updated_at = NOW()
-WHERE owner_id = $1 AND id != $2 AND status != 'updated'
-`
-
-type UpdateOldSubscriptionsStatusParams struct {
-	OwnerID uuid.UUID `db:"owner_id" json:"owner_id"`
-	ID      uuid.UUID `db:"id" json:"id"`
-}
-
-func (q *Queries) UpdateOldSubscriptionsStatus(ctx context.Context, arg UpdateOldSubscriptionsStatusParams) error {
-	_, err := q.db.Exec(ctx, updateOldSubscriptionsStatus, arg.OwnerID, arg.ID)
-	return err
 }

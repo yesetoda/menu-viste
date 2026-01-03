@@ -64,18 +64,6 @@ func (h *PaymentHandler) InitiatePayment(c *gin.Context) {
 	RespondSuccess(c, http.StatusOK, resp, nil)
 }
 
-func (h *PaymentHandler) RenewSubscription(c *gin.Context) {
-	// Wrapper for InitiatePayment with type=renewal
-	c.Set("type", "renewal")
-	h.InitiatePayment(c)
-}
-
-func (h *PaymentHandler) UpgradeSubscription(c *gin.Context) {
-	// Wrapper for InitiatePayment with type=upgrade
-	c.Set("type", "upgrade")
-	h.InitiatePayment(c)
-}
-
 func (h *PaymentHandler) PaymentSuccess(c *gin.Context) {
 	log.Printf("[PaymentHandler] 📥 Payment success callback received")
 	log.Printf("[PaymentHandler]    Full URL: %s", c.Request.URL.String())

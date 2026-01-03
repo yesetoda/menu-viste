@@ -54,7 +54,12 @@ ORDER BY created_at DESC;
 -- name: ListStaffByRestaurant :many
 SELECT * FROM users
 WHERE restaurant_id = $1 AND role = 'staff' AND deleted_at IS NULL
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountStaffByRestaurant :one
+SELECT COUNT(*) FROM users
+WHERE restaurant_id = $1 AND role = 'staff' AND deleted_at IS NULL;
 
 -- name: UpdateStaffStatus :exec
 UPDATE users
@@ -121,6 +126,17 @@ WHERE
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
+-- name: CountRestaurantsWithFilters :one
+SELECT COUNT(*) FROM restaurants
+WHERE 
+    (sqlc.narg('owner_id')::uuid IS NULL OR owner_id = sqlc.narg('owner_id')) AND
+    (sqlc.narg('cuisine_type')::text IS NULL OR cuisine_type = sqlc.narg('cuisine_type')) AND
+    (sqlc.narg('city')::text IS NULL OR city = sqlc.narg('city')) AND
+    (sqlc.narg('country')::text IS NULL OR country = sqlc.narg('country')) AND
+    (sqlc.narg('is_published')::boolean IS NULL OR is_published = sqlc.narg('is_published')) AND
+    (sqlc.narg('search')::text IS NULL OR name ILIKE '%' || sqlc.narg('search') || '%') AND
+    deleted_at IS NULL;
+
 -- name: DeleteRestaurant :exec
 UPDATE restaurants SET deleted_at = NOW() WHERE id = $1 AND owner_id = $2;
 
@@ -139,6 +155,10 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM categories
 WHERE restaurant_id = $1
 ORDER BY display_order ASC;
+
+-- name: CountCategoriesByRestaurant :one
+SELECT COUNT(*) FROM categories
+WHERE restaurant_id = $1;
 
 -- name: UpdateCategory :one
 UPDATE categories
@@ -175,6 +195,10 @@ ORDER BY display_order ASC;
 SELECT * FROM menu_items
 WHERE restaurant_id = $1 AND deleted_at IS NULL
 ORDER BY category_id, display_order ASC;
+
+-- name: CountMenuItemsByRestaurant :one
+SELECT COUNT(*) FROM menu_items
+WHERE restaurant_id = $1 AND deleted_at IS NULL;
 
 -- name: UpdateMenuItem :one
 UPDATE menu_items
@@ -228,6 +252,19 @@ WHERE
 ORDER BY al.created_at DESC
 LIMIT $1 OFFSET $2;
 
+-- name: CountActivityLogsWithFilters :one
+SELECT COUNT(*)
+FROM activity_logs al
+WHERE 
+    (sqlc.narg('restaurant_id')::uuid IS NULL OR al.restaurant_id = sqlc.narg('restaurant_id')) AND
+    (sqlc.narg('user_id')::uuid IS NULL OR al.user_id = sqlc.narg('user_id')) AND
+    (sqlc.narg('action_type')::text IS NULL OR al.action_type = sqlc.narg('action_type')) AND
+    (sqlc.narg('action_category')::text IS NULL OR al.action_category = sqlc.narg('action_category')) AND
+    (sqlc.narg('target_type')::text IS NULL OR al.target_type = sqlc.narg('target_type')) AND
+    (sqlc.narg('target_id')::uuid IS NULL OR al.target_id = sqlc.narg('target_id')) AND
+    (sqlc.narg('success')::boolean IS NULL OR al.success = sqlc.narg('success')) AND
+    (sqlc.narg('search')::text IS NULL OR al.description ILIKE '%' || sqlc.narg('search') || '%' OR al.target_name ILIKE '%' || sqlc.narg('search') || '%');
+
 -- name: CreateAnalyticsEvent :one
 INSERT INTO analytics_events (
     restaurant_id, event_type, visitor_id, session_id, target_id, ip_address, device_type, browser, os, country, city
@@ -247,6 +284,17 @@ WHERE
     (sqlc.narg('city')::text IS NULL OR city = sqlc.narg('city'))
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
+
+-- name: CountAnalyticsEventsWithFilters :one
+SELECT COUNT(*) FROM analytics_events
+WHERE 
+    (sqlc.narg('restaurant_id')::uuid IS NULL OR restaurant_id = sqlc.narg('restaurant_id')) AND
+    (sqlc.narg('event_type')::text IS NULL OR event_type = sqlc.narg('event_type')) AND
+    (sqlc.narg('visitor_id')::text IS NULL OR visitor_id = sqlc.narg('visitor_id')) AND
+    (sqlc.narg('session_id')::uuid IS NULL OR session_id = sqlc.narg('session_id')) AND
+    (sqlc.narg('target_id')::uuid IS NULL OR target_id = sqlc.narg('target_id')) AND
+    (sqlc.narg('country')::text IS NULL OR country = sqlc.narg('country')) AND
+    (sqlc.narg('city')::text IS NULL OR city = sqlc.narg('city'));
 
 -- name: GetAnalyticsAggregates :many
 SELECT * FROM analytics_aggregates
@@ -386,6 +434,13 @@ WHERE
     (sqlc.narg('status')::invoice_status IS NULL OR status = sqlc.narg('status'))
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
+
+-- name: CountInvoicesWithFilters :one
+SELECT COUNT(*) FROM invoices
+WHERE 
+    (sqlc.narg('owner_id')::uuid IS NULL OR owner_id = sqlc.narg('owner_id')) AND
+    (sqlc.narg('subscription_id')::uuid IS NULL OR subscription_id = sqlc.narg('subscription_id')) AND
+    (sqlc.narg('status')::invoice_status IS NULL OR status = sqlc.narg('status'));
 
 -- name: UpdateInvoiceStatus :one
 UPDATE invoices

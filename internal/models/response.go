@@ -1,5 +1,7 @@
 package models
 
+import "fmt"
+
 // SuccessResponse represents a standardized success response
 type SuccessResponse struct {
 	Success    bool        `json:"success"`
@@ -84,6 +86,9 @@ func NewPaginationParams(page, pageSize int) PaginationParams {
 
 // CalculateMeta calculates pagination metadata
 func CalculateMeta(page, pageSize, totalRecords int) *Meta {
+	fmt.Println("[CalculateMeta] page:", page)
+	fmt.Println("[CalculateMeta] pageSize:", pageSize)
+	fmt.Println("[CalculateMeta] totalRecords:", totalRecords)
 	totalPages := (totalRecords + pageSize - 1) / pageSize
 	if totalPages < 1 {
 		totalPages = 1

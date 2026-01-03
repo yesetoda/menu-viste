@@ -93,27 +93,6 @@ func (h *AdminHandler) GetRestaurants(c *gin.Context) {
 	RespondSuccess(c, http.StatusOK, results, meta)
 }
 
-func (h *AdminHandler) ListUsers(c *gin.Context) {
-	log.Printf("[AdminHandler] ListUsers request received")
-	pagination := ParsePaginationParams(c)
-	filters, err := ParseFilterParams(c, "users")
-	if err != nil {
-		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_FILTER")
-		return
-	}
-
-	users, err := h.service.ListUsersWithFilters(c.Request.Context(), filters, pagination)
-	if err != nil {
-		log.Printf("[AdminHandler] ListUsers service error: %v", err)
-		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
-		return
-	}
-
-	// Calculate meta (placeholder for total records)
-	meta := models.CalculateMeta(pagination.Page, pagination.PageSize, len(users))
-	RespondSuccess(c, http.StatusOK, users, meta)
-}
-
 func (h *AdminHandler) UpdateUserStatus(c *gin.Context) {
 	log.Printf("[AdminHandler] UpdateUserStatus request received")
 	userIDStr := c.Param("user_id")

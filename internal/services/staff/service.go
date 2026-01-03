@@ -62,7 +62,7 @@ func (s *Service) CreateStaff(ctx context.Context, ownerID uuid.UUID, restaurant
 		log.Printf("[StaffService] Warning: Failed to unmarshal features: %v", err)
 	}
 
-	existingStaff, err := s.queries.ListStaffByRestaurant(ctx, &restaurantID)
+	existingStaff, err := s.queries.ListStaffByRestaurant(ctx, persistence.ListStaffByRestaurantParams{RestaurantID: restaurantID})
 	if err == nil && len(existingStaff) >= features.MaxStaffAccounts {
 		return nil, fmt.Errorf("staff account limit reached for your tier (%d)", features.MaxStaffAccounts)
 	}
@@ -81,8 +81,8 @@ func (s *Service) CreateStaff(ctx context.Context, ownerID uuid.UUID, restaurant
 		PasswordHash: hashedPassword,
 		FullName:     input.FullName,
 		Role:         persistence.UserRoleStaff,
-		OwnerID:      &ownerID,
-		RestaurantID: &restaurantID,
+		OwnerID:      ownerID,
+		RestaurantID: restaurantID,
 		Phone:        pgtype.Text{String: input.Phone, Valid: input.Phone != ""},
 	})
 	if err != nil {
@@ -109,31 +109,48 @@ func (s *Service) CreateStaff(ctx context.Context, ownerID uuid.UUID, restaurant
 	return domainUser, nil
 }
 
-func (s *Service) ListStaff(ctx context.Context, restaurantID uuid.UUID) ([]*models.User, error) {
-	rows, err := s.queries.ListStaffByRestaurant(ctx, &restaurantID)
+func (s *Service) ListStaff(ctx context.Context, restaurantID uuid.UUID, pagination models.PaginationParams) ([]*models.User, *models.Meta, error) {
+	fmt.Printf("[StaffService] ListStaff: %v", restaurantID)
+	rows, err := s.queries.ListStaffByRestaurant(ctx, persistence.ListStaffByRestaurantParams{
+		RestaurantID: restaurantID,
+		Limit:        int32(pagination.PageSize),
+		Offset:       int32(pagination.Offset),
+	})
+	fmt.Printf("[StaffService] ListStaffByRestaurant: %v", rows)
+	fmt.Printf("[StaffService] ListStaffByRestaurant: %v", err)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list staff: %w", err)
+		return nil, nil, fmt.Errorf("failed to list staff: %w", err)
+	}
+
+	totalRecords, err := s.queries.CountStaffByRestaurant(ctx, restaurantID)
+	if err != nil {
+		log.Printf("[StaffService] Warning: Failed to count staff: %v", err)
 	}
 
 	staff := make([]*models.User, len(rows))
 	for i, row := range rows {
 		staff[i] = s.mapToDomainUser(row)
 	}
-	return staff, nil
+
+	meta := models.CalculateMeta(pagination.Page, pagination.PageSize, int(totalRecords))
+
+	return staff, meta, nil
 }
 
 func (s *Service) UpdateStaffStatus(ctx context.Context, staffID uuid.UUID, restaurantID uuid.UUID, isActive bool) error {
 	return s.queries.UpdateStaffStatus(ctx, persistence.UpdateStaffStatusParams{
 		ID:           staffID,
-		RestaurantID: &restaurantID,
+		RestaurantID: restaurantID,
 		IsActive:     isActive,
 	})
 }
 
 func (s *Service) DeleteStaff(ctx context.Context, staffID uuid.UUID, restaurantID uuid.UUID) error {
+	fmt.Printf("[StaffService] Deleting staff: %v", staffID)
+	fmt.Printf("[StaffService] Deleting staff: %v", restaurantID)
 	return s.queries.DeleteStaff(ctx, persistence.DeleteStaffParams{
 		ID:           staffID,
-		RestaurantID: &restaurantID,
+		RestaurantID: restaurantID,
 	})
 }
 
@@ -147,8 +164,8 @@ func (s *Service) mapToDomainUser(row persistence.User) *models.User {
 		Email:         row.Email,
 		FullName:      row.FullName,
 		Role:          models.UserRole(row.Role),
-		OwnerID:       ownerID,
-		RestaurantID:  restaurantID,
+		OwnerID:       &ownerID,
+		RestaurantID:  &restaurantID,
 		Phone:         row.Phone.String,
 		AvatarURL:     row.AvatarUrl.String,
 		EmailVerified: row.EmailVerified,

@@ -269,7 +269,7 @@ func (s *Service) generateAuthResponse(ctx context.Context, user persistence.Use
 		}
 	}
 
-	tokenDetails, err := utils.CreateToken(user.ID, string(user.Role), user.OwnerID, user.RestaurantID, subStatus, subEnd)
+	tokenDetails, err := utils.CreateToken(user.ID, string(user.Role), &user.OwnerID, &user.RestaurantID, subStatus, subEnd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tokens: %w", err)
 	}
@@ -299,6 +299,10 @@ func (s *Service) Login(ctx context.Context, input models.LoginRequest) (*models
 	log.Printf("[AuthService] Login attempt for: %s", input.Email)
 
 	userRow, err := s.queries.GetUserByEmail(ctx, input.Email)
+	fmt.Println("this is the input", input)
+	fmt.Println("this is the user row", userRow)
+	fmt.Println("this is the error", err)
+
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
@@ -387,8 +391,8 @@ func (s *Service) Login(ctx context.Context, input models.LoginRequest) (*models
 		}
 	} else if userRow.Role == persistence.UserRoleStaff {
 		// Check owner's subscription
-		if ownerID != nil {
-			sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, *ownerID)
+		if &ownerID != nil {
+			sub, err := s.queries.GetActiveSubscriptionByOwner(ctx, ownerID)
 			if err == nil {
 				isActive := sub.Status == persistence.SubscriptionStatusActive || sub.Status == persistence.SubscriptionStatusTrialing
 				if !isActive {
@@ -402,7 +406,7 @@ func (s *Service) Login(ctx context.Context, input models.LoginRequest) (*models
 		}
 	}
 
-	tokenDetails, err := utils.CreateToken(userID, string(userRow.Role), ownerID, restaurantID, subStatus, subEnd)
+	tokenDetails, err := utils.CreateToken(userID, string(userRow.Role), &ownerID, &restaurantID, subStatus, subEnd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tokens: %w", err)
 	}
@@ -441,8 +445,8 @@ func (s *Service) mapToDomainUser(row persistence.User) *models.User {
 		Email:         row.Email,
 		FullName:      row.FullName,
 		Role:          models.UserRole(row.Role),
-		OwnerID:       ownerID,
-		RestaurantID:  restaurantID,
+		OwnerID:       &ownerID,
+		RestaurantID:  &restaurantID,
 		Phone:         row.Phone.String,
 		AvatarURL:     row.AvatarUrl.String,
 		EmailVerified: row.EmailVerified,

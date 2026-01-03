@@ -162,12 +162,12 @@ func ToText(s *string) pgtype.Text {
 }
 
 // ToRestaurantStatus converts a string pointer to persistence.RestaurantStatus with NULL handling
-func ToRestaurantStatus(s *string) (persistence.RestaurantStatus, bool) {
-	if s == nil || *s == "" {
-		return "", false
-	}
-	return persistence.RestaurantStatus(*s), true
-}
+// func ToRestaurantStatus(s *string) (persistence.RestaurantStatus, bool) {
+// 	if s == nil || *s == "" {
+// 		return "", false
+// 	}
+// 	return persistence.RestaurantStatus(*s), true
+// }
 
 // ToUserRole converts a string pointer to persistence.UserRole with NULL handling
 func ToUserRole(s *string) (persistence.UserRole, bool) {

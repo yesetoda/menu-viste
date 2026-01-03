@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"menuvista/internal/models"
@@ -23,20 +23,29 @@ func NewStaffHandler(service *staff.Service) *StaffHandler {
 }
 
 func (h *StaffHandler) ListStaff(c *gin.Context) {
-	ownerID, exists := c.Get("owner_id")
-	fmt.Println("context", ownerID, exists)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	log.Printf("[StaffHandler] ListStaff request received")
+	restaurantIDStr := c.Param("restaurant_id")
+	if restaurantIDStr == "" {
+		RespondError(c, http.StatusBadRequest, "Restaurant ID is required", "INVALID_INPUT")
 		return
 	}
 
-	staffList, err := h.service.ListStaff(c, ownerID.(uuid.UUID))
+	restaurantID, err := uuid.Parse(restaurantIDStr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		RespondError(c, http.StatusBadRequest, "Invalid restaurant ID", "INVALID_INPUT")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": staffList})
+	pagination := ParsePaginationParams(c)
+
+	staffList, meta, err := h.service.ListStaff(c.Request.Context(), restaurantID, pagination)
+	if err != nil {
+		log.Printf("[StaffHandler] ListStaff service error: %v", err)
+		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
+		return
+	}
+
+	RespondSuccess(c, http.StatusOK, staffList, meta)
 }
 
 func (h *StaffHandler) AddStaff(c *gin.Context) {
@@ -89,13 +98,13 @@ func (h *StaffHandler) UpdateStaffStatus(c *gin.Context) {
 }
 
 func (h *StaffHandler) RemoveStaff(c *gin.Context) {
-	staffIDStr := c.Param("id")
+	staffIDStr := c.Param("staff_id")
 
 	// ownerID, _ := c.Get("owner_id") // Not used in service currently, but maybe should be for check
 
-	restaurantIDStr := c.Query("restaurant_id")
+	restaurantIDStr := c.Param("restaurant_id")
 	if restaurantIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "restaurant_id query param is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "restaurant_id  param is required"})
 		return
 	}
 

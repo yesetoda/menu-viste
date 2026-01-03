@@ -28,15 +28,15 @@ func NewAuthMiddleware(secret string, logger *log.Logger, smsService *sms.Servic
 	}
 }
 
-type AuthClaims struct {
-	UserID       string `json:"user_id"`
-	Role         string `json:"role"`
-	OwnerID      string `json:"owner_id,omitempty"`
-	RestaurantID string `json:"restaurant_id,omitempty"`
-	SubStatus    string `json:"sub_status,omitempty"`
-	SubEnd       int64  `json:"sub_end,omitempty"`
-	jwt.RegisteredClaims
-}
+	type AuthClaims struct {
+		UserID       string `json:"user_id"`
+		Role         string `json:"role"`
+		OwnerID      string `json:"owner_id,omitempty"`
+		RestaurantID string `json:"restaurant_id,omitempty"`
+		SubStatus    string `json:"sub_status,omitempty"`
+		SubEnd       int64  `json:"sub_end,omitempty"`
+		jwt.RegisteredClaims
+	}
 
 func (am *AuthMiddleware) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

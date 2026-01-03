@@ -56,50 +56,6 @@ func (ns NullInvoiceStatus) Value() (driver.Value, error) {
 	return string(ns.InvoiceStatus), nil
 }
 
-type RestaurantStatus string
-
-const (
-	RestaurantStatusPending   RestaurantStatus = "pending"
-	RestaurantStatusApproved  RestaurantStatus = "approved"
-	RestaurantStatusRejected  RestaurantStatus = "rejected"
-	RestaurantStatusSuspended RestaurantStatus = "suspended"
-)
-
-func (e *RestaurantStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = RestaurantStatus(s)
-	case string:
-		*e = RestaurantStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for RestaurantStatus: %T", src)
-	}
-	return nil
-}
-
-type NullRestaurantStatus struct {
-	RestaurantStatus RestaurantStatus `json:"restaurant_status"`
-	Valid            bool             `json:"valid"` // Valid is true if RestaurantStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullRestaurantStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.RestaurantStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.RestaurantStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullRestaurantStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.RestaurantStatus), nil
-}
-
 type SubscriptionStatus string
 
 const (
@@ -197,7 +153,7 @@ type ActivityLog struct {
 	ActionCategory string           `db:"action_category" json:"action_category"`
 	Description    pgtype.Text      `db:"description" json:"description"`
 	TargetType     pgtype.Text      `db:"target_type" json:"target_type"`
-	TargetID       *uuid.UUID       `db:"target_id" json:"target_id"`
+	TargetID       uuid.UUID        `db:"target_id" json:"target_id"`
 	TargetName     pgtype.Text      `db:"target_name" json:"target_name"`
 	BeforeValue    []byte           `db:"before_value" json:"before_value"`
 	AfterValue     []byte           `db:"after_value" json:"after_value"`
@@ -216,7 +172,7 @@ type AnalyticsAggregate struct {
 	Date         pgtype.Date      `db:"date" json:"date"`
 	Hour         pgtype.Int4      `db:"hour" json:"hour"`
 	MetricType   string           `db:"metric_type" json:"metric_type"`
-	TargetID     *uuid.UUID       `db:"target_id" json:"target_id"`
+	TargetID     uuid.UUID        `db:"target_id" json:"target_id"`
 	Value        pgtype.Int4      `db:"value" json:"value"`
 	CreatedAt    pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamp `db:"updated_at" json:"updated_at"`
@@ -228,7 +184,7 @@ type AnalyticsEvent struct {
 	EventType    string           `db:"event_type" json:"event_type"`
 	VisitorID    string           `db:"visitor_id" json:"visitor_id"`
 	SessionID    uuid.UUID        `db:"session_id" json:"session_id"`
-	TargetID     *uuid.UUID       `db:"target_id" json:"target_id"`
+	TargetID     uuid.UUID        `db:"target_id" json:"target_id"`
 	IpAddress    pgtype.Text      `db:"ip_address" json:"ip_address"`
 	DeviceType   pgtype.Text      `db:"device_type" json:"device_type"`
 	Browser      pgtype.Text      `db:"browser" json:"browser"`
@@ -379,8 +335,8 @@ type User struct {
 	PasswordHash               string           `db:"password_hash" json:"password_hash"`
 	FullName                   string           `db:"full_name" json:"full_name"`
 	Role                       UserRole         `db:"role" json:"role"`
-	OwnerID                    *uuid.UUID       `db:"owner_id" json:"owner_id"`
-	RestaurantID               *uuid.UUID       `db:"restaurant_id" json:"restaurant_id"`
+	OwnerID                    uuid.UUID        `db:"owner_id" json:"owner_id"`
+	RestaurantID               uuid.UUID        `db:"restaurant_id" json:"restaurant_id"`
 	Phone                      pgtype.Text      `db:"phone" json:"phone"`
 	AvatarUrl                  pgtype.Text      `db:"avatar_url" json:"avatar_url"`
 	EmailVerified              bool             `db:"email_verified" json:"email_verified"`

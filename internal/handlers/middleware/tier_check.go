@@ -147,7 +147,7 @@ func (tm *TierCheckMiddleware) CheckStaffLimit() gin.HandlerFunc {
 
 		if features.MaxStaffAccounts > 0 {
 
-			staff, err := tm.queries.ListStaffByOwner(c, &ownerIDUUID)
+			staff, err := tm.queries.ListStaffByOwner(c, ownerIDUUID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count staff"})
 				c.Abort()

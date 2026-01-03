@@ -8,6 +8,7 @@ import (
 
 	"menuvista/internal/models"
 	"menuvista/internal/services/menu"
+	"menuvista/internal/services/restaurant"
 	"menuvista/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -21,11 +22,15 @@ const (
 )
 
 type MenuHandler struct {
-	service *menu.Service
+	service           *menu.Service
+	restaurantService *restaurant.Service
 }
 
-func NewMenuHandler(service *menu.Service) *MenuHandler {
-	return &MenuHandler{service: service}
+func NewMenuHandler(service *menu.Service, restaurantService *restaurant.Service) *MenuHandler {
+	return &MenuHandler{
+		service:           service,
+		restaurantService: restaurantService,
+	}
 }
 
 // Categories
@@ -71,26 +76,38 @@ func (h *MenuHandler) CreateCategory(c *gin.Context) {
 
 func (h *MenuHandler) ListCategories(c *gin.Context) {
 	log.Printf("[MenuHandler] ListCategories request received")
-	slug := c.Param("slug")
-	if slug != "" {
-		// Public listing by slug
-		// Wait, ListCategoriesByRestaurantSlug is not in MenuService interface I saw?
-		// I saw ListCategories(ctx, restaurantID).
-		// I need to fetch restaurant by slug first then list categories?
-		// Or add ListCategoriesByRestaurantSlug to service.
-		// Service has GetRestaurantBySlug? No, RestaurantService has it.
-		// MenuService doesn't seem to have it.
-		// I should probably inject RestaurantService into MenuHandler or add method to MenuService.
-		// For now, I'll skip public listing by slug or implement it if I can.
-		// Let's assume I need to implement it.
-		// But I'll focus on Owner listing first.
+	restaurantIDStr := c.Param("restaurant_id")
+	pagination := ParsePaginationParams(c)
+	if restaurantIDStr == "" {
+		slug := c.Param("slug")
+		if slug != "" {
+			restaurant, err := h.restaurantService.GetRestaurantBySlug(c.Request.Context(), slug)
+			if err != nil {
+				RespondError(c, http.StatusNotFound, "Restaurant not found", "NOT_FOUND")
+				return
+			}
+			restaurantIDStr = restaurant.ID.String()
+		}
 	}
 
-	// Owner listing
-	// ...
-	// Actually, let's just update UpdateCategory and others first.
+	if restaurantIDStr == "" {
+		RespondError(c, http.StatusBadRequest, "Restaurant ID is required", "INVALID_INPUT")
+		return
+	}
 
-	RespondSuccess(c, http.StatusOK, nil, nil)
+	restaurantID, err := uuid.Parse(restaurantIDStr)
+	if err != nil {
+		RespondError(c, http.StatusBadRequest, "Invalid restaurant ID", "INVALID_INPUT")
+		return
+	}
+
+	categories, meta, err := h.service.ListCategories(c.Request.Context(), restaurantID, pagination)
+	if err != nil {
+		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
+		return
+	}
+
+	RespondSuccess(c, http.StatusOK, categories, meta)
 }
 
 func (h *MenuHandler) UpdateCategory(c *gin.Context) {
@@ -137,7 +154,26 @@ func (h *MenuHandler) DeleteCategory(c *gin.Context) {
 }
 
 func (h *MenuHandler) ListItems(c *gin.Context) {
-	// ...
+	log.Printf("[MenuHandler] ListItems request received")
+	restaurantIDStr := c.Param("restaurant_id")
+	if restaurantIDStr == "" {
+		RespondError(c, http.StatusBadRequest, "Restaurant ID is required", "INVALID_INPUT")
+		return
+	}
+	restaurantID := utils.ParseUUID(restaurantIDStr)
+
+	categoryIDStr := c.Param("category_id")
+	categoryID := utils.ParseUUID(categoryIDStr)
+
+	pagination := ParsePaginationParams(c)
+
+	items, meta, err := h.service.ListItems(c.Request.Context(), restaurantID, categoryID, pagination)
+	if err != nil {
+		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
+		return
+	}
+
+	RespondSuccess(c, http.StatusOK, items, meta)
 }
 
 // Items

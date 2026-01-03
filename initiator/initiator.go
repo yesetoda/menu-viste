@@ -18,7 +18,6 @@ import (
 	"menuvista/internal/services/restaurant"
 	"menuvista/internal/services/staff"
 	"menuvista/internal/services/subscription"
-	"menuvista/internal/services/user"
 	"menuvista/internal/storage/persistence"
 	"menuvista/platform/cache"
 	"menuvista/platform/core"
@@ -68,7 +67,6 @@ func Init(ctx context.Context) *gin.Engine {
 	menuService := menu.NewService(queries, r2Client)
 	adminService := admin.NewService(queries)
 	staffService := staff.NewStaffService(queries, emailService)
-	UserService := user.NewUserService(queries, emailService)
 	activityService := activity.NewService(queries)
 	analyticsService := analytics.NewService(queries)
 	subscriptionService := subscription.NewService(queries)
@@ -101,7 +99,6 @@ func Init(ctx context.Context) *gin.Engine {
 			Payment:      paymentService,
 			Webhook:      webhookService,
 			Staff:        staffService,
-			UserService:  UserService,
 			Activity:     activityService,
 			Analytics:    analyticsService,
 			Subscription: subscriptionService,

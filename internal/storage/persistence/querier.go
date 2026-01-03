@@ -12,6 +12,14 @@ import (
 )
 
 type Querier interface {
+	CountActivityLogsWithFilters(ctx context.Context, arg CountActivityLogsWithFiltersParams) (int64, error)
+	CountAnalyticsEventsWithFilters(ctx context.Context, arg CountAnalyticsEventsWithFiltersParams) (int64, error)
+	CountCategoriesByRestaurant(ctx context.Context, restaurantID uuid.UUID) (int64, error)
+	CountMenuItemsByCategory(ctx context.Context, categoryID uuid.UUID) (int64, error)
+	CountInvoicesWithFilters(ctx context.Context, arg CountInvoicesWithFiltersParams) (int64, error)
+	CountMenuItemsByRestaurant(ctx context.Context, restaurantID uuid.UUID) (int64, error)
+	CountRestaurantsWithFilters(ctx context.Context, arg CountRestaurantsWithFiltersParams) (int64, error)
+	CountStaffByRestaurant(ctx context.Context, restaurantID uuid.UUID) (int64, error)
 	CreateActivityLog(ctx context.Context, arg CreateActivityLogParams) (ActivityLog, error)
 	CreateAnalyticsEvent(ctx context.Context, arg CreateAnalyticsEventParams) (AnalyticsEvent, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
@@ -29,19 +37,18 @@ type Querier interface {
 	DeleteRestaurant(ctx context.Context, arg DeleteRestaurantParams) error
 	DeleteStaff(ctx context.Context, arg DeleteStaffParams) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetActiveSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetActiveSubscriptionByOwnerRow, error)
 	GetAdminDashboardStats(ctx context.Context) (GetAdminDashboardStatsRow, error)
 	GetAllAdminEmails(ctx context.Context) ([]string, error)
 	GetAnalyticsAggregates(ctx context.Context, arg GetAnalyticsAggregatesParams) ([]AnalyticsAggregate, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetLatestSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetLatestSubscriptionByOwnerRow, error)
 	GetMenuItemByID(ctx context.Context, id uuid.UUID) (MenuItem, error)
 	GetPaymentTransactionByTxRef(ctx context.Context, txRef string) (PaymentTransaction, error)
 	GetRecentAdminLogs(ctx context.Context, limit int32) ([]GetRecentAdminLogsRow, error)
 	GetRestaurantByID(ctx context.Context, id uuid.UUID) (Restaurant, error)
 	GetRestaurantBySlug(ctx context.Context, slug string) (Restaurant, error)
 	GetRestaurantDetailsForAdmin(ctx context.Context, id uuid.UUID) (GetRestaurantDetailsForAdminRow, error)
-	GetActiveSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetActiveSubscriptionByOwnerRow, error)
-	GetLatestSubscriptionByOwner(ctx context.Context, ownerID uuid.UUID) (GetLatestSubscriptionByOwnerRow, error)
-	UpdateOldSubscriptionsStatus(ctx context.Context, arg UpdateOldSubscriptionsStatusParams) error
 	GetSubscriptionPlanBySlug(ctx context.Context, slug string) (SubscriptionPlan, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -57,8 +64,8 @@ type Querier interface {
 	ListMenuItemsByRestaurant(ctx context.Context, restaurantID uuid.UUID) ([]MenuItem, error)
 	ListRestaurantsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Restaurant, error)
 	ListRestaurantsWithFilters(ctx context.Context, arg ListRestaurantsWithFiltersParams) ([]Restaurant, error)
-	ListStaffByOwner(ctx context.Context, ownerID *uuid.UUID) ([]User, error)
-	ListStaffByRestaurant(ctx context.Context, restaurantID *uuid.UUID) ([]User, error)
+	ListStaffByOwner(ctx context.Context, ownerID uuid.UUID) ([]User, error)
+	ListStaffByRestaurant(ctx context.Context, arg ListStaffByRestaurantParams) ([]User, error)
 	ListSubscriptionPlans(ctx context.Context) ([]SubscriptionPlan, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	ListUsersWithFilters(ctx context.Context, arg ListUsersWithFiltersParams) ([]User, error)
@@ -66,10 +73,10 @@ type Querier interface {
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	UpdateInvoiceStatus(ctx context.Context, arg UpdateInvoiceStatusParams) (Invoice, error)
 	UpdateMenuItem(ctx context.Context, arg UpdateMenuItemParams) (MenuItem, error)
+	UpdateOldSubscriptionsStatus(ctx context.Context, arg UpdateOldSubscriptionsStatusParams) error
 	UpdatePaymentRetryJob(ctx context.Context, arg UpdatePaymentRetryJobParams) (PaymentRetryJob, error)
 	UpdatePaymentTransactionStatus(ctx context.Context, arg UpdatePaymentTransactionStatusParams) (PaymentTransaction, error)
 	UpdateRestaurant(ctx context.Context, arg UpdateRestaurantParams) (Restaurant, error)
-	// UpdateRestaurantStatus(ctx context.Context, arg UpdateRestaurantStatusParams) (Restaurant, error)
 	UpdateStaffStatus(ctx context.Context, arg UpdateStaffStatusParams) error
 	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)

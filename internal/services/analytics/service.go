@@ -30,7 +30,7 @@ func (s *Service) TrackEvent(ctx context.Context, input models.CreateAnalyticsEv
 		EventType:    input.EventType,
 		VisitorID:    input.VisitorID,
 		SessionID:    uuid.Nil, // Optional, can be added to request model if needed
-		TargetID:     utils.ToUUIDPtr(input.TargetID),
+		TargetID:     *utils.ToUUIDPtr(input.TargetID),
 		IpAddress:    pgtype.Text{String: input.IPAddress, Valid: input.IPAddress != ""},
 		DeviceType:   pgtype.Text{String: input.DeviceType, Valid: input.DeviceType != ""},
 		Browser:      pgtype.Text{String: input.Browser, Valid: input.Browser != ""},
@@ -65,7 +65,7 @@ func (s *Service) TrackEvent(ctx context.Context, input models.CreateAnalyticsEv
 		Date:         date,
 		Hour:         pgtype.Int4{Int32: hour, Valid: true},
 		MetricType:   input.EventType,
-		TargetID:     utils.ToUUIDPtr(input.TargetID),
+		TargetID:     *utils.ToUUIDPtr(input.TargetID),
 		Value:        pgtype.Int4{Int32: 1, Valid: true},
 	})
 	if err != nil {
@@ -136,7 +136,7 @@ func (s *Service) mapToDomainAggregate(row persistence.AnalyticsAggregate) *mode
 		Date:         row.Date.Time,
 		Hour:         hour,
 		MetricType:   row.MetricType,
-		TargetID:     row.TargetID,
+		TargetID:     &row.TargetID,
 		Value:        row.Value.Int32,
 		CreatedAt:    row.CreatedAt.Time,
 		UpdatedAt:    row.UpdatedAt.Time,
