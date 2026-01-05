@@ -62,11 +62,11 @@ func Init(ctx context.Context) *gin.Engine {
 	// 5. Services
 	paymentService := payment.NewService(queries)
 	webhookService := payment.NewWebhookService(queries, emailService)
-	authService := auth.NewService(queries, redisClient, emailService, paymentService)
+	authService := auth.NewService(queries, redisClient, r2Client, emailService, paymentService)
 	restaurantService := restaurant.NewService(queries, r2Client, emailService)
 	menuService := menu.NewService(queries, r2Client)
 	adminService := admin.NewService(queries)
-	staffService := staff.NewStaffService(queries, emailService)
+	staffService := staff.NewStaffService(queries, r2Client, emailService)
 	activityService := activity.NewService(queries)
 	analyticsService := analytics.NewService(queries)
 	subscriptionService := subscription.NewService(queries)

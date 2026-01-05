@@ -23,10 +23,11 @@ func NewRestaurantHandler(service *restaurant.Service) *RestaurantHandler {
 
 func (h *RestaurantHandler) CreateRestaurant(c *gin.Context) {
 	log.Printf("[RestaurantHandler] CreateRestaurant request received")
-	// Parse multipart form
-	if err := c.Request.ParseMultipartForm(10 << 20); err != nil { // 10 MB limit
-		log.Printf("[RestaurantHandler] CreateRestaurant form parse error: %v", err)
-		RespondError(c, http.StatusBadRequest, "Failed to parse form", "INVALID_INPUT")
+
+	var input models.CreateRestaurantRequest
+	if err := c.ShouldBind(&input); err != nil {
+		log.Printf("[RestaurantHandler] CreateRestaurant bind error: %v", err)
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
 
@@ -36,36 +37,6 @@ func (h *RestaurantHandler) CreateRestaurant(c *gin.Context) {
 		return
 	}
 	ownerID := userIDVal.(uuid.UUID)
-
-	slug := c.PostForm("slug")
-	name := c.PostForm("name")
-	description := c.PostForm("description")
-
-	input := models.CreateRestaurantRequest{
-		Slug:        slug,
-		Name:        name,
-		Description: description,
-		// TODO: Map other fields from form
-	}
-
-	// Handle Logo
-	file, header, err := c.Request.FormFile("logo")
-	if err == nil {
-		defer file.Close()
-		// input.LogoFile = file
-		// input.LogoName = header.Filename
-		// TODO: Handle file upload in service or here
-		_ = header
-	}
-
-	// Handle Cover
-	coverFile, coverHeader, err := c.Request.FormFile("cover")
-	if err == nil {
-		defer coverFile.Close()
-		// input.CoverFile = coverFile
-		// input.CoverName = coverHeader.Filename
-		_ = coverHeader
-	}
 
 	result, err := h.service.CreateRestaurant(c.Request.Context(), ownerID, input)
 	if err != nil {
@@ -154,22 +125,14 @@ func (h *RestaurantHandler) ListRestaurants(c *gin.Context) {
 func (h *RestaurantHandler) UpdateRestaurant(c *gin.Context) {
 	log.Printf("[RestaurantHandler] UpdateRestaurant request received")
 	restaurantIDStr := c.Param("restaurant_id")
-	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
-		RespondError(c, http.StatusBadRequest, "Failed to parse form", "INVALID_INPUT")
+	restaurantID := utils.ToUUID(&restaurantIDStr)
+
+	var input models.UpdateRestaurantRequest
+	if err := c.ShouldBind(&input); err != nil {
+		log.Printf("[RestaurantHandler] UpdateRestaurant bind error: %v", err)
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
-
-	name := c.PostForm("name")
-	description := c.PostForm("description")
-	email := c.PostForm("email")
-	phone := c.PostForm("phone")
-	website := c.PostForm("website")
-	address := c.PostForm("address")
-	city := c.PostForm("city")
-	country := c.PostForm("country")
-	isPublished := c.PostForm("is_published") == "true"
-
-	restaurantID := utils.ToUUID(&restaurantIDStr)
 
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -181,35 +144,6 @@ func (h *RestaurantHandler) UpdateRestaurant(c *gin.Context) {
 	// Check if admin
 	role, _ := c.Get("role")
 	isAdmin := role == "admin"
-
-	input := models.UpdateRestaurantRequest{
-		Name:        &name,
-		Description: &description,
-		Email:       &email,
-		Phone:       &phone,
-		Website:     &website,
-		Address:     &address,
-		City:        &city,
-		Country:     &country,
-		IsPublished: &isPublished,
-		// TODO: Map other fields
-	}
-
-	file, header, err := c.Request.FormFile("logo")
-	if err == nil {
-		defer file.Close()
-		// input.LogoFile = file
-		// input.LogoName = header.Filename
-		_ = header
-	}
-
-	coverFile, coverHeader, err := c.Request.FormFile("cover")
-	if err == nil {
-		defer coverFile.Close()
-		// input.CoverFile = coverFile
-		// input.CoverName = coverHeader.Filename
-		_ = coverHeader
-	}
 
 	result, err := h.service.UpdateRestaurant(c.Request.Context(), restaurantID, ownerID, isAdmin, input)
 	if err != nil {

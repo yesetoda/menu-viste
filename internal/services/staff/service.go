@@ -12,6 +12,9 @@ import (
 	// "menuvista/internal/services/sms"
 	"menuvista/internal/storage/persistence"
 	"menuvista/internal/utils"
+	"menuvista/platform/storage"
+
+	"mime/multipart"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -19,13 +22,15 @@ import (
 
 type Service struct {
 	queries      *persistence.Queries
+	r2           *storage.R2Client
 	emailService *email.Service
 	// smsService   *sms.Service
 }
 
-func NewStaffService(queries *persistence.Queries, emailService *email.Service) *Service {
+func NewStaffService(queries *persistence.Queries, r2 *storage.R2Client, emailService *email.Service) *Service {
 	return &Service{
 		queries:      queries,
+		r2:           r2,
 		emailService: emailService,
 		// smsService:   smsService,
 	}
@@ -173,4 +178,42 @@ func (s *Service) mapToDomainUser(row persistence.User) *models.User {
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 	}
+}
+func (s *Service) UpdateStaff(ctx context.Context, staffID uuid.UUID, restaurantID uuid.UUID, input models.UpdateUserRequest) (*models.User, error) {
+	log.Printf("[StaffService] Updating staff: %v", staffID)
+
+	params := persistence.UpdateUserParams{
+		ID:       staffID,
+		FullName: pgtype.Text{String: utils.DerefString(input.FullName), Valid: input.FullName != nil},
+		Phone:    pgtype.Text{String: utils.DerefString(input.Phone), Valid: input.Phone != nil},
+		IsActive: pgtype.Bool{Bool: utils.DerefBool(input.IsActive), Valid: input.IsActive != nil},
+	}
+
+	if input.Avatar != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("users/%s/avatar", staffID.String()), input.Avatar)
+		if err == nil {
+			params.AvatarUrl = pgtype.Text{String: url, Valid: true}
+		}
+	}
+
+	userRow, err := s.queries.UpdateUser(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update staff: %w", err)
+	}
+
+	return s.mapToDomainUser(userRow), nil
+}
+
+func (s *Service) uploadFile(ctx context.Context, key string, file *multipart.FileHeader) (string, error) {
+	if s.r2 == nil {
+		return "", fmt.Errorf("R2 client not initialized")
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+
+	return s.r2.UploadFile(ctx, key, f, file.Header.Get("Content-Type"))
 }

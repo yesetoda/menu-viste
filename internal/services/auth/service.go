@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"time"
 
 	"menuvista/internal/models"
@@ -12,6 +13,7 @@ import (
 	"menuvista/internal/storage/persistence"
 	"menuvista/internal/utils"
 	"menuvista/platform/cache"
+	"menuvista/platform/storage"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -20,6 +22,7 @@ import (
 type Service struct {
 	queries        *persistence.Queries
 	redis          *cache.RedisClient
+	r2             *storage.R2Client
 	emailService   EmailService
 	paymentService PaymentService
 }
@@ -35,10 +38,11 @@ type PaymentService interface {
 	InitiatePayment(ctx context.Context, input payment.InitiatePaymentInput) (*payment.InitiatePaymentResponse, error)
 }
 
-func NewService(queries *persistence.Queries, redis *cache.RedisClient, emailService EmailService, paymentService PaymentService) *Service {
+func NewService(queries *persistence.Queries, redis *cache.RedisClient, r2 *storage.R2Client, emailService EmailService, paymentService PaymentService) *Service {
 	return &Service{
 		queries:        queries,
 		redis:          redis,
+		r2:             r2,
 		emailService:   emailService,
 		paymentService: paymentService,
 	}
@@ -455,4 +459,42 @@ func (s *Service) mapToDomainUser(row persistence.User) *models.User {
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 	}
+}
+func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, input models.UpdateUserRequest) (*models.User, error) {
+	log.Printf("[AuthService] Updating user: %v", id)
+
+	params := persistence.UpdateUserParams{
+		ID:       id,
+		FullName: pgtype.Text{String: utils.DerefString(input.FullName), Valid: input.FullName != nil},
+		Phone:    pgtype.Text{String: utils.DerefString(input.Phone), Valid: input.Phone != nil},
+		IsActive: pgtype.Bool{Bool: utils.DerefBool(input.IsActive), Valid: input.IsActive != nil},
+	}
+
+	if input.Avatar != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("users/%s/avatar", id.String()), input.Avatar)
+		if err == nil {
+			params.AvatarUrl = pgtype.Text{String: url, Valid: true}
+		}
+	}
+
+	userRow, err := s.queries.UpdateUser(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return s.mapToDomainUser(userRow), nil
+}
+
+func (s *Service) uploadFile(ctx context.Context, key string, file *multipart.FileHeader) (string, error) {
+	if s.r2 == nil {
+		return "", fmt.Errorf("R2 client not initialized")
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+
+	return s.r2.UploadFile(ctx, key, f, file.Header.Get("Content-Type"))
 }

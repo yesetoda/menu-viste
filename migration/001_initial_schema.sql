@@ -108,7 +108,7 @@ CREATE TABLE categories (
     restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    icon VARCHAR(50),
+    icon VARCHAR(255),
     display_order INTEGER NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_by UUID NOT NULL REFERENCES users(id),

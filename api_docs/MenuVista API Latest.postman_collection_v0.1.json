@@ -1,0 +1,1292 @@
+{
+  "info": {
+    "_postman_id": "40cc1d7b-4c97-4497-8fe0-63dad84ac890",
+    "name": "MenuVista API Latest",
+    "description": "# MenuVista API Documentation\n\nWelcome to the MenuVista API documentation. This collection provides a comprehensive set of endpoints for managing restaurants, menus, staff, and subscriptions.\n\n## Authentication\n\nMost endpoints require authentication using a Bearer Token. \n1. Register a new user or Login.\n2. Copy the `access_token` from the response.\n3. The collection automatically sets the `access_token` collection variable after a successful login.\n\n## Base URL\n\nThe base URL for all API endpoints is `{{base_url}}`, which defaults to `http://localhost:8080/api/v1`.\n\n## Error Handling\n\nErrors are returned in the following format:\n```json\n{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"Error message description\",\n  \"code\": \"ERROR_CODE\"\n}\n```",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "37276877"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\",\n    \"full_name\": \"John Doe\",\n    \"role\": \"owner\",\n    \"phone\": \"+1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account. \n\n**Roles:** `owner`, `admin`, `staff`."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.data.access_token);",
+                  "}",
+                  "if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                  "    pm.collectionVariables.set(\"user_id\", jsonData.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"yeneinehseiba1@gmail.com\",\n    \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticate a user and retrieve access and refresh tokens."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Retrieve the currently authenticated user's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/activate?token={{activation_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "activate"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{activation_token}}"
+                }
+              ]
+            },
+            "description": "Activate a user account using the token received in the verification email."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "full_name",
+                  "value": "John Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "+1987654321",
+                  "type": "text"
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Update the currently authenticated user's profile."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for user authentication and account management."
+    },
+    {
+      "name": "Public API",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["health"]
+            },
+            "description": "Check the health status of the API."
+          },
+          "response": []
+        },
+        {
+          "name": "List Restaurants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants"]
+            },
+            "description": "List all published restaurants."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Restaurant by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/:slug",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", ":slug"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "yene"
+                }
+              ]
+            },
+            "description": "Get public details of a restaurant by its slug."
+          },
+          "response": []
+        },
+        {
+          "name": "List Categories (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/:slug/categories",
+              "host": ["{{base_url}}"],
+              "path": ["restaurants", ":slug", "categories"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "the-gourmet-kitchen-2"
+                }
+              ]
+            },
+            "description": "List categories for a specific restaurant (public view)."
+          },
+          "response": []
+        },
+        {
+          "name": "List Items (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/restaurants/:slug/categories/:category_id/items",
+              "host": ["{{base_url}}"],
+              "path": [
+                "restaurants",
+                ":slug",
+                "categories",
+                ":category_id",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "the-gourmet-kitchen-2"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            },
+            "description": "List items in a category for a specific restaurant (public view)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Public endpoints for viewing restaurants and menus."
+    },
+    {
+      "name": "Restaurants (Owner)",
+      "item": [
+        {
+          "name": "Create Restaurant",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": " My Restaurant",
+                  "type": "text"
+                },
+                {
+                  "key": "slug",
+                  "value": " my-restaurant",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": " Best food in town",
+                  "type": "text"
+                },
+                {
+                  "key": "cuisine_type",
+                  "value": "Italian",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "+123456789",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "info@myrestaurant.com",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 Main St",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "New York",
+                  "type": "text"
+                },
+                {
+                  "key": "country",
+                  "value": " USA",
+                  "type": "text"
+                },
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "cover_image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants"]
+            },
+            "description": "Create a new restaurant profile."
+          },
+          "response": []
+        },
+        {
+          "name": "List My Restaurants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.length > 0) {",
+                  "    pm.collectionVariables.set(\"restaurant_id\", jsonData.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants"]
+            },
+            "description": "List all restaurants owned by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Restaurant",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "description",
+                  "value": "Updated description",
+                  "type": "text"
+                },
+                {
+                  "key": "is_published",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "cuisine_type",
+                  "value": "Italian Fusion",
+                  "type": "text"
+                },
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "cover_image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", ":restaurant_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Update details of a specific restaurant."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Restaurant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", ":restaurant_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Delete a restaurant profile."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for restaurant owners to manage their restaurants."
+    },
+    {
+      "name": "Menu Management",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.collectionVariables.set(\"category_id\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Entrees",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Hearty meals",
+                  "type": "text"
+                },
+                {
+                  "key": "display_order",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", ":restaurant_id", "categories"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Create a new menu category."
+          },
+          "response": []
+        },
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/{{restaurant_id}}/categories",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", "{{restaurant_id}}", "categories"]
+            },
+            "description": "List all categories for a restaurant."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Main Courses",
+                  "type": "text"
+                },
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "categories",
+                ":category_id"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            },
+            "description": "Update a menu category."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "categories",
+                ":category_id"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            },
+            "description": "Delete a menu category."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.collectionVariables.set(\"item_id\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Spaghetti Carbonara",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Classic Italian pasta",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "15.00",
+                  "type": "text"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "type": "text"
+                },
+                {
+                  "key": "is_available",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id/items",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "categories",
+                ":category_id",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            },
+            "description": "Create a new menu item. Supports image upload via multipart/form-data."
+          },
+          "response": []
+        },
+        {
+          "name": "List Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id/items",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "categories",
+                ":category_id",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            },
+            "description": "List all items in a category."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Updated Spaghetti",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "16.00",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated description",
+                  "type": "text"
+                },
+                {
+                  "key": "is_available",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id/items/:item_id",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "categories",
+                ":category_id",
+                "items",
+                ":item_id"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                },
+                {
+                  "key": "item_id",
+                  "value": "{{item_id}}"
+                }
+              ]
+            },
+            "description": "Update a menu item."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/categories/:category_id/items/:item_id",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "categories",
+                ":category_id",
+                "items",
+                ":item_id"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                },
+                {
+                  "key": "item_id",
+                  "value": "{{item_id}}"
+                }
+              ]
+            },
+            "description": "Delete a menu item."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for managing menu categories and items."
+    },
+    {
+      "name": "Staff Management",
+      "item": [
+        {
+          "name": "Add Staff",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "email",
+                  "value": "staff2@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "full_name",
+                  "value": "Alice Staff 2",
+                  "type": "text"
+                },
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "+123456789",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/staff",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", ":restaurant_id", "staff"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Add a new staff member to a restaurant."
+          },
+          "response": []
+        },
+        {
+          "name": "List Staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.length > 0) {",
+                  "    pm.collectionVariables.set(\"staff_id\", jsonData.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/staff",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", ":restaurant_id", "staff"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "List all staff members for a restaurant."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/staff/:staff_id",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "staff",
+                ":staff_id"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "staff_id",
+                  "value": "{{staff_id}}"
+                }
+              ]
+            },
+            "description": "Remove a staff member from a restaurant."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "full_name",
+                  "value": "Alice Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/staff/:staff_id",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "staff",
+                ":staff_id"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                },
+                {
+                  "key": "staff_id",
+                  "value": "{{staff_id}}"
+                }
+              ]
+            },
+            "description": "Update a staff member's details."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for managing restaurant staff."
+    },
+    {
+      "name": "Analytics & Activity",
+      "item": [
+        {
+          "name": "Get Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/analytics/overview",
+              "host": ["{{base_url}}"],
+              "path": [
+                "my-restaurants",
+                ":restaurant_id",
+                "analytics",
+                "overview"
+              ],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Get an overview of restaurant analytics (views, etc.)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/my-restaurants/:restaurant_id/activity",
+              "host": ["{{base_url}}"],
+              "path": ["my-restaurants", ":restaurant_id", "activity"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Get activity logs for a restaurant."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for viewing restaurant analytics and activity logs."
+    },
+    {
+      "name": "Subscription & Payment",
+      "item": [
+        {
+          "name": "Get My Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subscription/me",
+              "host": ["{{base_url}}"],
+              "path": ["subscription", "me"]
+            },
+            "description": "Get details of the currently authenticated user's subscription."
+          },
+          "response": []
+        },
+        {
+          "name": "Initiate Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"plan\": \"bronze-monthly\",\n    \"type\": \"upgrade\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payment/initiate",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "initiate"]
+            },
+            "description": "Initiate a payment for subscription upgrade or renewal."
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Success Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/payment/success?trx_ref=TX-123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["payment", "success"],
+              "query": [
+                {
+                  "key": "trx_ref",
+                  "value": "TX-123"
+                }
+              ]
+            },
+            "description": "Public callback URL for successful payments."
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Cancel Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/payment/cancel?trx_ref=TX-123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["payment", "cancel"],
+              "query": [
+                {
+                  "key": "trx_ref",
+                  "value": "TX-123"
+                }
+              ]
+            },
+            "description": "Public callback URL for cancelled payments."
+          },
+          "response": []
+        },
+        {
+          "name": "Chapa Webhook",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"event\": \"charge.success\",\n    \"data\": {\n        \"tx_ref\": \"TX-123\",\n        \"status\": \"success\"\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/payment/chapa/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "chapa", "webhook"]
+            },
+            "description": "Webhook endpoint for Chapa payment notifications."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for managing subscriptions and payments."
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "stats"]
+            },
+            "description": "Get system-wide statistics."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recent Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/logs?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "logs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get recent system logs."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Restaurants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "restaurants"]
+            },
+            "description": "List all restaurants in the system."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Restaurant Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/restaurants/:restaurant_id",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "restaurants", ":restaurant_id"],
+              "variable": [
+                {
+                  "key": "restaurant_id",
+                  "value": "{{restaurant_id}}"
+                }
+              ]
+            },
+            "description": "Get detailed information about a specific restaurant."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/users/:user_id/status",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", ":user_id", "status"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "{{user_id}}"
+                }
+              ]
+            },
+            "description": "Update the active status of a user."
+          },
+          "response": []
+        }
+      ],
+      "description": "Administrative endpoints for system management."
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "restaurant_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "item_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staff_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "activation_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

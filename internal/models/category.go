@@ -1,6 +1,7 @@
 package models
 
 import (
+	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,17 +21,17 @@ type Category struct {
 }
 
 type CreateCategoryRequest struct {
-	Name         string `json:"name" binding:"required"`
-	Description  string `json:"description,omitempty"`
-	Icon         string `json:"icon,omitempty"`
-	DisplayOrder int32  `json:"display_order"`
-	IsActive     bool   `json:"is_active"`
+	Name         string                `form:"name" binding:"required"`
+	Description  string                `form:"description,omitempty"`
+	Icon         *multipart.FileHeader `form:"icon,omitempty"`
+	DisplayOrder int32                 `form:"display_order"`
+	IsActive     bool                  `form:"is_active"`
 }
 
 type UpdateCategoryRequest struct {
-	Name         *string `json:"name,omitempty"`
-	Description  *string `json:"description,omitempty"`
-	Icon         *string `json:"icon,omitempty"`
-	DisplayOrder *int32  `json:"display_order,omitempty"`
-	IsActive     *bool   `json:"is_active,omitempty"`
+	Name         *string               `form:"name,omitempty"`
+	Description  *string               `form:"description,omitempty"`
+	Icon         *multipart.FileHeader `form:"icon,omitempty"`
+	DisplayOrder *int32                `form:"display_order,omitempty"`
+	IsActive     *bool                 `form:"is_active,omitempty"`
 }

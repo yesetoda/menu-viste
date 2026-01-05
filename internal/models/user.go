@@ -1,6 +1,7 @@
 package models
 
 import (
+	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,10 +50,10 @@ type CreateStaffRequest struct {
 }
 
 type UpdateUserRequest struct {
-	FullName  *string `json:"full_name,omitempty"`
-	Phone     *string `json:"phone,omitempty"`
-	AvatarURL *string `json:"avatar_url,omitempty"`
-	IsActive  *bool   `json:"is_active,omitempty"`
+	FullName *string               `form:"full_name,omitempty"`
+	Phone    *string               `form:"phone,omitempty"`
+	Avatar   *multipart.FileHeader `form:"avatar,omitempty"`
+	IsActive *bool                 `form:"is_active,omitempty"`
 }
 
 type LoginRequest struct {

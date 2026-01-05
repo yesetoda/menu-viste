@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"time"
 
 	"menuvista/internal/models"
@@ -88,12 +89,22 @@ func (s *Service) CreateCategory(ctx context.Context, userID uuid.UUID, restaura
 		return nil, fmt.Errorf("category limit reached for your tier (%d)", features.MaxCategories)
 	}
 
+	var iconURL string
+	if input.Icon != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/categories/%s", restaurantIDStr, input.Name), input.Icon)
+		if err != nil {
+			log.Printf("[MenuService] Warning: Failed to upload category icon: %v", err)
+		} else {
+			iconURL = url
+		}
+	}
+
 	userIDStr := user.ID.String()
 	categoryRow, err := s.queries.CreateCategory(ctx, persistence.CreateCategoryParams{
 		RestaurantID: utils.ToUUID(&restaurantIDStr),
 		Name:         input.Name,
 		Description:  pgtype.Text{String: input.Description, Valid: input.Description != ""},
-		Icon:         pgtype.Text{String: input.Icon, Valid: input.Icon != ""},
+		Icon:         pgtype.Text{String: iconURL, Valid: iconURL != ""},
 		DisplayOrder: input.DisplayOrder,
 		IsActive:     input.IsActive,
 		CreatedBy:    utils.ToUUID(&userIDStr),
@@ -151,14 +162,22 @@ func (s *Service) UpdateCategory(ctx context.Context, userID uuid.UUID, id uuid.
 		return nil, err
 	}
 
-	categoryRow, err := s.queries.UpdateCategory(ctx, persistence.UpdateCategoryParams{
+	params := persistence.UpdateCategoryParams{
 		ID:           utils.ToUUID(&idStr),
 		Name:         pgtype.Text{String: utils.DerefString(input.Name), Valid: input.Name != nil},
 		Description:  pgtype.Text{String: utils.DerefString(input.Description), Valid: input.Description != nil},
-		Icon:         pgtype.Text{String: utils.DerefString(input.Icon), Valid: input.Icon != nil},
 		DisplayOrder: pgtype.Int4{Int32: utils.DerefInt32(input.DisplayOrder), Valid: input.DisplayOrder != nil},
 		IsActive:     pgtype.Bool{Bool: utils.DerefBool(input.IsActive), Valid: input.IsActive != nil},
-	})
+	}
+
+	if input.Icon != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/categories/%s", category.RestaurantID.String(), idStr), input.Icon)
+		if err == nil {
+			params.Icon = pgtype.Text{String: url, Valid: true}
+		}
+	}
+
+	categoryRow, err := s.queries.UpdateCategory(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update category: %w", err)
 	}
@@ -240,6 +259,16 @@ func (s *Service) CreateMenuItem(ctx context.Context, userID uuid.UUID, restaura
 		return nil, fmt.Errorf("menu item limit reached for your tier (%d)", features.MaxMenuItems)
 	}
 
+	var imageURL string
+	if input.Image != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/items/%s", restaurantIDStr, input.Name), input.Image)
+		if err != nil {
+			log.Printf("[MenuService] Warning: Failed to upload item image: %v", err)
+		} else {
+			imageURL = url
+		}
+	}
+
 	categoryIDStr := input.CategoryID.String()
 	userIDStr := user.ID.String()
 	itemRow, err := s.queries.CreateMenuItem(ctx, persistence.CreateMenuItemParams{
@@ -249,7 +278,7 @@ func (s *Service) CreateMenuItem(ctx context.Context, userID uuid.UUID, restaura
 		Description:  pgtype.Text{String: input.Description, Valid: input.Description != ""},
 		Price:        utils.ToNumeric(input.Price),
 		Currency:     input.Currency,
-		Images:       input.Images,
+		Images:       []byte(fmt.Sprintf(`["%s"]`, imageURL)), // Store as JSON array
 		Allergens:    input.Allergens,
 		DietaryTags:  input.DietaryTags,
 		SpiceLevel:   pgtype.Int4{Int32: input.SpiceLevel, Valid: true},
@@ -310,7 +339,6 @@ func (s *Service) UpdateMenuItem(ctx context.Context, userID uuid.UUID, id uuid.
 		return nil, err
 	}
 
-
 	params := persistence.UpdateMenuItemParams{
 		ID:           utils.ToUUID(&idStr),
 		Name:         pgtype.Text{String: utils.DerefString(input.Name), Valid: input.Name != nil},
@@ -323,6 +351,13 @@ func (s *Service) UpdateMenuItem(ctx context.Context, userID uuid.UUID, id uuid.
 		Calories:     pgtype.Int4{Int32: utils.DerefInt32(input.Calories), Valid: input.Calories != nil},
 		IsAvailable:  pgtype.Bool{Bool: utils.DerefBool(input.IsAvailable), Valid: input.IsAvailable != nil},
 		DisplayOrder: pgtype.Int4{Int32: utils.DerefInt32(input.DisplayOrder), Valid: input.DisplayOrder != nil},
+	}
+
+	if input.Image != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/items/%s", item.RestaurantID.String(), idStr), input.Image)
+		if err == nil {
+			params.Images = []byte(fmt.Sprintf(`["%s"]`, url))
+		}
 	}
 
 	itemRow, err := s.queries.UpdateMenuItem(ctx, params)
@@ -492,4 +527,17 @@ func (s *Service) mapToDomainMenuItem(row persistence.MenuItem) *models.MenuItem
 		CreatedAt:    row.CreatedAt.Time,
 		UpdatedAt:    row.UpdatedAt.Time,
 	}
+}
+func (s *Service) uploadFile(ctx context.Context, key string, file *multipart.FileHeader) (string, error) {
+	if s.r2 == nil {
+		return "", fmt.Errorf("R2 client not initialized")
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+
+	return s.r2.UploadFile(ctx, key, f, file.Header.Get("Content-Type"))
 }

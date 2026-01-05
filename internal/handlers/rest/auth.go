@@ -105,3 +105,25 @@ func (h *AuthHandler) ActivateAccount(c *gin.Context) {
 
 	RespondSuccess(c, http.StatusOK, response, nil)
 }
+
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	log.Printf("[AuthHandler] UpdateProfile request received")
+	userIDVal, _ := c.Get("user_id")
+	userID := userIDVal.(uuid.UUID)
+
+	var input models.UpdateUserRequest
+	if err := c.ShouldBind(&input); err != nil {
+		log.Printf("[AuthHandler] UpdateProfile bind error: %v", err)
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
+		return
+	}
+
+	user, err := h.service.UpdateUser(c.Request.Context(), userID, input)
+	if err != nil {
+		log.Printf("[AuthHandler] UpdateProfile service error: %v", err)
+		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
+		return
+	}
+
+	RespondSuccess(c, http.StatusOK, user, nil)
+}

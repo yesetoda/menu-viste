@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"menuvista/internal/models"
 	"menuvista/internal/services/menu"
@@ -50,7 +49,7 @@ func (h *MenuHandler) CreateCategory(c *gin.Context) {
 
 	fmt.Println("Restaurant ID:", restaurantIDStr, restaurantID)
 	var req models.CreateCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		log.Printf("[MenuHandler] CreateCategory bind error: %v", err)
 		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
@@ -115,7 +114,7 @@ func (h *MenuHandler) UpdateCategory(c *gin.Context) {
 	categoryID := utils.ParseUUID(categoryIDStr)
 
 	var req models.UpdateCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
@@ -180,46 +179,19 @@ func (h *MenuHandler) ListItems(c *gin.Context) {
 
 func (h *MenuHandler) CreateItem(c *gin.Context) {
 	log.Printf("[MenuHandler] CreateItem request received")
-	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
-		RespondError(c, http.StatusBadRequest, "Failed to parse form", "INVALID_INPUT")
+
+	var input models.CreateMenuItemRequest
+	if err := c.ShouldBind(&input); err != nil {
+		log.Printf("[MenuHandler] CreateItem bind error: %v", err)
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
 
 	restaurantIDStr := c.PostForm("restaurant_id")
 	restaurantID := utils.ParseUUID(restaurantIDStr)
 
-	categoryIDStr := c.PostForm("category_id")
-	categoryID := utils.ParseUUID(categoryIDStr)
-
-	name := c.PostForm("name")
-	description := c.PostForm("description")
-	priceStr := c.PostForm("price")
-	currency := c.PostForm("currency")
-	isAvailableStr := c.PostForm("is_available")
-
-	price, _ := strconv.ParseFloat(priceStr, 64)
-	isAvailable, _ := strconv.ParseBool(isAvailableStr)
-
 	userIDVal, _ := c.Get("user_id")
 	userID := userIDVal.(uuid.UUID)
-
-	input := models.CreateMenuItemRequest{
-		CategoryID:  categoryID,
-		Name:        name,
-		Description: description,
-		Price:       price,
-		Currency:    currency,
-		IsAvailable: isAvailable,
-		// TODO: Map other fields
-	}
-
-	file, header, err := c.Request.FormFile("image")
-	if err == nil {
-		defer file.Close()
-		// input.ImageFile = file
-		// input.ImageName = header.Filename
-		_ = header
-	}
 
 	result, err := h.service.CreateMenuItem(c.Request.Context(), userID, restaurantID, input)
 	if err != nil {
@@ -236,37 +208,15 @@ func (h *MenuHandler) UpdateItem(c *gin.Context) {
 	itemIDStr := c.Param("item_id")
 	itemID := utils.ParseUUID(itemIDStr)
 
-	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
-		RespondError(c, http.StatusBadRequest, "Failed to parse form", "INVALID_INPUT")
+	var input models.UpdateMenuItemRequest
+	if err := c.ShouldBind(&input); err != nil {
+		log.Printf("[MenuHandler] UpdateItem bind error: %v", err)
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
 
-	name := c.PostForm("name")
-	description := c.PostForm("description")
-	priceStr := c.PostForm("price")
-	isAvailableStr := c.PostForm("is_available")
-
-	price, _ := strconv.ParseFloat(priceStr, 64)
-	isAvailable, _ := strconv.ParseBool(isAvailableStr)
-
 	userIDVal, _ := c.Get("user_id")
 	userID := userIDVal.(uuid.UUID)
-
-	input := models.UpdateMenuItemRequest{
-		Name:        &name,
-		Description: &description,
-		Price:       &price,
-		IsAvailable: &isAvailable,
-		// TODO: Map other fields
-	}
-
-	file, header, err := c.Request.FormFile("image")
-	if err == nil {
-		defer file.Close()
-		// input.ImageFile = file
-		// input.ImageName = header.Filename
-		_ = header
-	}
 
 	result, err := h.service.UpdateMenuItem(c.Request.Context(), userID, itemID, input)
 	if err != nil {

@@ -85,6 +85,7 @@ func InitRouter(
 			protectedAuth.Use(authMiddleware.AuthMiddleware())
 			{
 				protectedAuth.GET("/me", authH.GetProfile)
+				protectedAuth.PATCH("/profile", authH.UpdateProfile)
 			}
 		}
 
@@ -149,6 +150,7 @@ func InitRouter(
 			{
 				staff.POST("", staffH.AddStaff)
 				staff.GET("", staffH.ListStaff)
+				staff.PATCH("/:staff_id", staffH.UpdateStaff)
 				staff.DELETE("/:staff_id", staffH.RemoveStaff)
 			}
 

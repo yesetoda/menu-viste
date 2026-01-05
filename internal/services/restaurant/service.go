@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"mime/multipart"
 
 	"menuvista/internal/models"
 	"menuvista/internal/storage/persistence"
@@ -53,6 +54,24 @@ func (s *Service) CreateRestaurant(ctx context.Context, ownerID uuid.UUID, input
 		return nil, fmt.Errorf("restaurant limit reached for your tier (%d)", features.MaxRestaurants)
 	}
 
+	var logoURL, coverURL string
+	if input.Logo != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/logo", input.Slug), input.Logo)
+		if err != nil {
+			log.Printf("[RestaurantService] Warning: Failed to upload logo: %v", err)
+		} else {
+			logoURL = url
+		}
+	}
+	if input.CoverImage != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/cover", input.Slug), input.CoverImage)
+		if err != nil {
+			log.Printf("[RestaurantService] Warning: Failed to upload cover: %v", err)
+		} else {
+			coverURL = url
+		}
+	}
+
 	restaurantRow, err := s.queries.CreateRestaurant(ctx, persistence.CreateRestaurantParams{
 		OwnerID:       utils.ToUUID(&ownerIDStr),
 		Name:          input.Name,
@@ -64,6 +83,9 @@ func (s *Service) CreateRestaurant(ctx context.Context, ownerID uuid.UUID, input
 		Website:       pgtype.Text{String: input.Website, Valid: input.Website != ""},
 		Address:       pgtype.Text{String: input.Address, Valid: input.Address != ""},
 		City:          pgtype.Text{String: input.City, Valid: input.City != ""},
+		Country:       pgtype.Text{String: input.Country, Valid: input.Country != ""},
+		LogoUrl:       pgtype.Text{String: logoURL, Valid: logoURL != ""},
+		CoverImageUrl: pgtype.Text{String: coverURL, Valid: coverURL != ""},
 		ThemeSettings: input.ThemeSettings,
 	})
 	if err != nil {
@@ -151,10 +173,21 @@ func (s *Service) UpdateRestaurant(ctx context.Context, id uuid.UUID, ownerID uu
 		Address:       pgtype.Text{String: utils.DerefString(input.Address), Valid: input.Address != nil},
 		City:          pgtype.Text{String: utils.DerefString(input.City), Valid: input.City != nil},
 		Country:       pgtype.Text{String: utils.DerefString(input.Country), Valid: input.Country != nil},
-		LogoUrl:       pgtype.Text{String: utils.DerefString(input.LogoURL), Valid: input.LogoURL != nil},
-		CoverImageUrl: pgtype.Text{String: utils.DerefString(input.CoverImageURL), Valid: input.CoverImageURL != nil},
 		ThemeSettings: input.ThemeSettings,
 		IsPublished:   pgtype.Bool{Bool: utils.DerefBool(input.IsPublished), Valid: input.IsPublished != nil},
+	}
+
+	if input.Logo != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/logo", idStr), input.Logo)
+		if err == nil {
+			params.LogoUrl = pgtype.Text{String: url, Valid: true}
+		}
+	}
+	if input.CoverImage != nil {
+		url, err := s.uploadFile(ctx, fmt.Sprintf("restaurants/%s/cover", idStr), input.CoverImage)
+		if err == nil {
+			params.CoverImageUrl = pgtype.Text{String: url, Valid: true}
+		}
 	}
 
 	restaurantRow, err := s.queries.UpdateRestaurant(ctx, params)
@@ -263,4 +296,19 @@ func (s *Service) mapToDomainRestaurant(row persistence.Restaurant) *models.Rest
 		CreatedAt: row.CreatedAt.Time,
 		UpdatedAt: row.UpdatedAt.Time,
 	}
+}
+func (s *Service) uploadFile(ctx context.Context, key string, file *multipart.FileHeader) (string, error) {
+	if s.r2 == nil {
+		return "", fmt.Errorf("R2 client not initialized")
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+
+	// Use the original filename extension if possible
+	// For now, we just use the provided key
+	return s.r2.UploadFile(ctx, key, f, file.Header.Get("Content-Type"))
 }

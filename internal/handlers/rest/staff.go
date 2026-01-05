@@ -50,8 +50,8 @@ func (h *StaffHandler) ListStaff(c *gin.Context) {
 
 func (h *StaffHandler) AddStaff(c *gin.Context) {
 	var req models.CreateStaffRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBind(&req); err != nil {
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
 
@@ -74,7 +74,29 @@ func (h *StaffHandler) AddStaff(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"data": user})
+	c.JSON(http.StatusCreated, user)
+}
+
+func (h *StaffHandler) UpdateStaff(c *gin.Context) {
+	staffIDStr := c.Param("staff_id")
+	staffID := utils.ParseUUID(staffIDStr)
+
+	restaurantIDStr := c.Query("restaurant_id")
+	restaurantID := utils.ParseUUID(restaurantIDStr)
+
+	var input models.UpdateUserRequest
+	if err := c.ShouldBind(&input); err != nil {
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
+		return
+	}
+
+	user, err := h.service.UpdateStaff(c.Request.Context(), staffID, restaurantID, input)
+	if err != nil {
+		RespondError(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
+		return
+	}
+
+	RespondSuccess(c, http.StatusOK, user, nil)
 }
 
 func (h *StaffHandler) UpdateStaffStatus(c *gin.Context) {
@@ -85,7 +107,7 @@ func (h *StaffHandler) UpdateStaffStatus(c *gin.Context) {
 		RestaurantID uuid.UUID `json:"restaurant_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		RespondError(c, http.StatusBadRequest, err.Error(), "INVALID_INPUT")
 		return
 	}
 
