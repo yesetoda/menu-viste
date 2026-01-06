@@ -56,13 +56,16 @@ func (s *Service) Register(ctx context.Context, input models.CreateUserRequest) 
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
+	id := uuid.New()
 	// Create user in DB
 	userRow, err := s.queries.CreateUser(ctx, persistence.CreateUserParams{
+		ID:           id,
 		Email:        input.Email,
 		PasswordHash: hashedPassword,
 		FullName:     input.FullName,
 		Role:         persistence.UserRoleOwner,
 		Phone:        pgtype.Text{String: input.Phone, Valid: input.Phone != ""},
+		OwnerID:      id,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)

@@ -740,30 +740,35 @@ func (q *Queries) CreateSubscriptionPlan(ctx context.Context, arg CreateSubscrip
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url
+    id, owner_id, email, password_hash, full_name, role, restaurant_id, phone, avatar_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, 
+	NULLIF($7, '00000000-0000-0000-0000-000000000000'::uuid), 
+    $8, $9
 ) RETURNING id, email, password_hash, full_name, role, owner_id, restaurant_id, phone, avatar_url, email_verified, last_login_at, is_active, created_at, updated_at, email_verified_at, verification_token, verification_token_expires_at, trial_ends_at
 `
 
 type CreateUserParams struct {
+	ID           uuid.UUID   `db:"id" json:"id"`
+	OwnerID      uuid.UUID   `db:"owner_id" json:"owner_id"`
 	Email        string      `db:"email" json:"email"`
 	PasswordHash string      `db:"password_hash" json:"password_hash"`
 	FullName     string      `db:"full_name" json:"full_name"`
 	Role         UserRole    `db:"role" json:"role"`
-	OwnerID      uuid.UUID   `db:"owner_id" json:"owner_id"`
 	RestaurantID uuid.UUID   `db:"restaurant_id" json:"restaurant_id"`
 	Phone        pgtype.Text `db:"phone" json:"phone"`
 	AvatarUrl    pgtype.Text `db:"avatar_url" json:"avatar_url"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	fmt.Printf("this is the data %+v\n", arg)
 	row := q.db.QueryRow(ctx, createUser,
+		arg.ID,
+		arg.OwnerID,
 		arg.Email,
 		arg.PasswordHash,
 		arg.FullName,
 		arg.Role,
-		arg.OwnerID,
 		arg.RestaurantID,
 		arg.Phone,
 		arg.AvatarUrl,
